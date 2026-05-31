@@ -1,0 +1,6 @@
+@RentaFacil.API_HostAddress = http://localhost:5295
+
+GET {{RentaFacil.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

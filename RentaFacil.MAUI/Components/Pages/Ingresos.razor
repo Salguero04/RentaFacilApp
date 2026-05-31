@@ -1,0 +1,305 @@
+@page "/ingresos"
+@using RentaFacil.Shared.Models
+@using RentaFacil.MAUI.Services
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;" @onclick="GoBack">
+        <i class="bi bi-arrow-left fs-4"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Ingresos</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="dashboard-header d-flex justify-content-between align-items-center mb-4">
+    <!-- Selector de Fecha -->
+    <div class="date-box text-white p-2 text-center rounded shadow-sm" style="width: 140px; background-color: #2a7587; cursor: pointer;" @onclick="AbrirSelectorFecha">
+        <span class="d-block fw-bold fs-6">@fechaFiltro.ToString("MMMM").ToUpper()</span>
+        <span class="d-block fw-bold fs-6">@fechaFiltro.Year</span>
+    </div>
+    
+    <!-- Leyenda Resumen -->
+    <div class="text-end">
+        <small class="text-muted d-block">Periodo</small>
+        <span class="fw-bold text-dark">@fechaFiltro.ToString("MMM yyyy").ToUpper()</span>
+    </div>
+</div>
+
+@if (cargando)
+{
+    <p class="text-center mt-4"><em>Procesando ingresos...</em></p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger m-3">@errorMessage</div>
+}
+else
+{
+    <!-- Tarjetas de Resumen Financiero -->
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background-color: #e8f5e9;">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                        <i class="bi bi-cash"></i>
+                    </div>
+                    <span class="text-success fw-bold small">Alquileres</span>
+                </div>
+                <h4 class="fw-bold text-success mb-0">$@totalAlquileres.ToString("F2")</h4>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background-color: #fffde7;">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <span class="text-warning-dark fw-bold small" style="color: #f57f17;">Servicios</span>
+                </div>
+                <h4 class="fw-bold mb-0" style="color: #f57f17;">$@totalServicios.ToString("F2")</h4>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-3" style="background-color: #e3f2fd;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-wallet2 fs-5"></i>
+                        </div>
+                        <div>
+                            <span class="text-primary fw-bold d-block">Ingresos Totales</span>
+                            <small class="text-muted">Renta + Servicios Extras</small>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-primary mb-0">$@((totalAlquileres + totalServicios).ToString("F2"))</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalle por Inmueble -->
+    <h5 class="fw-bold mb-3 text-dark">Detalle por Inmueble</h5>
+
+    @if (!ingresosPorInmueble.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-center text-muted">
+            <i class="bi bi-bank fs-2 d-block mb-2"></i>
+            <span>No se encontraron inmuebles registrados.</span>
+        </div>
+    }
+    else
+    {
+        @foreach (var item in ingresosPorInmueble)
+        {
+            <div class="card border-0 shadow-sm rounded-4 mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                <i class="bi @(item.Inmueble.Tipo == RentaFacil.Shared.Enums.TipoInmueble.Unico ? "bi-house-fill" : "bi-building") fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0">@item.Inmueble.Nombre.ToUpper()</h6>
+                                <small class="text-muted">@item.Inmueble.Direccion</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-dark border rounded-pill">@item.Inmueble.Tipo</span>
+                    </div>
+
+                    <div class="row bg-light rounded p-3 text-center g-2">
+                        <div class="col-4">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Alquileres</small>
+                            <span class="fw-bold text-success">$@item.Alquileres.ToString("F2")</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Servicios</small>
+                            <span class="fw-bold text-warning-dark" style="color: #f57f17;">$@item.Servicios.ToString("F2")</span>
+                        </div>
+                        <div class="col-4 border-start">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Total</small>
+                            <span class="fw-bold text-primary">$@item.Total.ToString("F2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+}
+
+<!-- Selector de Fecha (Calendario Pop-up) -->
+@if (mostrarSelectorFecha)
+{
+    <div class="modal-overlay" @onclick="() => mostrarSelectorFecha = false"></div>
+    <div class="modal-custom scale-in p-0 overflow-hidden" style="max-width: 350px;">
+        <div class="p-3 text-white" style="background-color: #38a3d1;">
+            <p class="mb-1">@fechaSeleccionada.ToString("MMM yyyy")</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="mb-0 fw-normal">@fechaSeleccionada.Year</h1>
+                <div>
+                    <i class="bi bi-chevron-up fs-5 me-2" @onclick="() => CambiarAnio(1)" style="cursor:pointer"></i>
+                    <i class="bi bi-chevron-down fs-5" @onclick="() => CambiarAnio(-1)" style="cursor:pointer"></i>
+                </div>
+            </div>
+        </div>
+        <div class="p-3 bg-white text-center">
+            <div class="row g-3">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    var mes = i;
+                    var nombreMes = new DateTime(fechaSeleccionada.Year, mes, 1).ToString("MMM");
+                    <div class="col-3">
+                        @if (fechaSeleccionada.Month == mes)
+                        {
+                            <div class="d-flex align-items-center justify-content-center rounded-circle mx-auto text-dark" style="width: 50px; height: 50px; background-color: #8be1ce; cursor: pointer;" @onclick="() => SeleccionarMes(mes)">
+                                @nombreMes
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 50px; height: 50px; color: #38a3d1; cursor: pointer;" @onclick="() => SeleccionarMes(mes)">
+                                @nombreMes
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="d-flex justify-content-end mt-4">
+                <button class="btn btn-link text-info text-decoration-none fw-bold me-2" @onclick="() => mostrarSelectorFecha = false">Cancelar</button>
+                <button class="btn btn-link text-info text-decoration-none fw-bold" @onclick="AplicarFecha">ACEPTAR</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1040;
+    }
+    .modal-custom {
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        background: white;
+        border-radius: 10px;
+        z-index: 1050;
+    }
+    .scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+    }
+    @@keyframes scaleIn {
+        from { transform: translate(-50%, -45%) scale(0.95); opacity: 0; }
+        to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+</style>
+
+@code {
+    private bool cargando = true;
+    private string errorMessage = "";
+    private DateTime fechaFiltro = DateTime.Today;
+    private DateTime fechaSeleccionada = DateTime.Today;
+    private bool mostrarSelectorFecha = false;
+
+    private decimal totalAlquileres = 0;
+    private decimal totalServicios = 0;
+
+    private List<IngresosInmuebleViewModel> ingresosPorInmueble = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarIngresosAsync();
+    }
+
+    private async Task CargarIngresosAsync()
+    {
+        cargando = true;
+        errorMessage = "";
+        StateHasChanged();
+        try
+        {
+            var inmuebles = await Api.GetInmueblesAsync();
+            var pagos = await Api.GetPagosAsync();
+            var contratos = await Api.GetContratosAsync();
+            var unidades = await Api.GetUnidadesAsync();
+
+            // Filtrar los pagos para el mes y año seleccionados
+            var pagosFiltrados = pagos.Where(p => p.FechaPago.Month == fechaFiltro.Month && p.FechaPago.Year == fechaFiltro.Year).ToList();
+
+            totalAlquileres = pagosFiltrados.Sum(p => p.ACuenta);
+            totalServicios = pagosFiltrados.Sum(p => p.Servicios);
+
+            ingresosPorInmueble.Clear();
+
+            foreach (var inm in inmuebles)
+            {
+                // Unidades pertenecientes a este inmueble
+                var unidadesInm = unidades.Where(u => u.InmuebleId == inm.Id).Select(u => u.Id).ToList();
+
+                // Contratos que pertenecen a esas unidades
+                var contratosInm = contratos.Where(c => unidadesInm.Contains(c.UnidadId)).Select(c => c.Id).ToList();
+
+                // Pagos correspondientes a esos contratos
+                var pagosInm = pagosFiltrados.Where(p => contratosInm.Contains(p.ContratoId)).ToList();
+
+                var rentSum = pagosInm.Sum(p => p.ACuenta);
+                var servSum = pagosInm.Sum(p => p.Servicios);
+
+                ingresosPorInmueble.Add(new IngresosInmuebleViewModel
+                {
+                    Inmueble = inm,
+                    Alquileres = rentSum,
+                    Servicios = servSum
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al calcular ingresos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void AbrirSelectorFecha()
+    {
+        fechaSeleccionada = fechaFiltro;
+        mostrarSelectorFecha = true;
+    }
+
+    private void CambiarAnio(int delta)
+    {
+        fechaSeleccionada = fechaSeleccionada.AddYears(delta);
+    }
+
+    private void SeleccionarMes(int mes)
+    {
+        fechaSeleccionada = new DateTime(fechaSeleccionada.Year, mes, 1);
+    }
+
+    private async Task AplicarFecha()
+    {
+        fechaFiltro = fechaSeleccionada;
+        mostrarSelectorFecha = false;
+        await CargarIngresosAsync();
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    public class IngresosInmuebleViewModel
+    {
+        public InmuebleDto Inmueble { get; set; } = null!;
+        public decimal Alquileres { get; set; }
+        public decimal Servicios { get; set; }
+        public decimal Total => Alquileres + Servicios;
+    }
+}

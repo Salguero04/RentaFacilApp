@@ -1,0 +1,98 @@
+@using RentaFacil.MAUI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="sidebar-custom bg-white h-100 d-flex flex-column" style="overflow-y: auto;">
+    <!-- Header with Background Image -->
+    <div class="sidebar-header" style="background-image: url('images/sidebar-bg.jpg'); background-size: cover; background-position: center; border-radius: 0 0 20px 20px; padding: 2rem 1rem 1rem 1rem; position: relative;">
+        <div class="overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); border-radius: 0 0 20px 20px;"></div>
+        <div class="profile-info text-center position-relative" style="z-index: 1;">
+            <div class="profile-avatar mb-2 d-inline-block p-1 border border-2 border-white rounded-circle shadow-sm" style="background: rgba(255,255,255,0.2);">
+                <i class="bi bi-person-fill fs-1 text-white" style="line-height: 1; margin: 5px;"></i>
+            </div>
+            <h5 class="text-white mb-0 fw-bold" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">Mario Salguero</h5>
+            <small class="text-white d-block" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">msalguerocastillo@gmail.com</small>
+            <small class="text-white d-block mt-1" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Suscripción: Gratis</small>
+            <small class="text-white d-block" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">Vence: 28/06/2026</small>
+            <small class="text-white-50 d-block mt-1" style="font-size: 0.7rem;">v2.0.4</small>
+            <small class="text-danger d-block mt-1 fw-bold" style="font-size: 0.8rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">Presione para personalizar</small>
+        </div>
+    </div>
+
+    <!-- Menu Links -->
+    <div class="nav-scrollable mt-3 flex-grow-1 px-3">
+        <nav class="nav flex-column sidebar-nav gap-2">
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="" Match="NavLinkMatch.All" @onclick="CerrarMenu">
+                <i class="bi bi-house-door-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6">Inicio / Estado</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inquilinos" @onclick="CerrarMenu">
+                <i class="bi bi-person-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6">Inquilinos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inmuebles" @onclick="CerrarMenu">
+                <i class="bi bi-shop fs-5 text-secondary"></i> <span class="ms-3 fs-6">Inmuebles</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="contratos" @onclick="CerrarMenu">
+                <i class="bi bi-file-earmark-text fs-5 text-secondary"></i> <span class="ms-3 fs-6">Contratos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="suscripcion" @onclick="CerrarMenu">
+                <i class="bi bi-alarm fs-5 text-secondary"></i> <span class="ms-3 fs-6">Suscripción</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="ingresos" @onclick="CerrarMenu">
+                <i class="bi bi-cash-stack fs-5 text-secondary"></i> <span class="ms-3 fs-6">Ingresos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="opinion" @onclick="CerrarMenu">
+                <i class="bi bi-chat-left-text fs-5 text-secondary"></i> <span class="ms-3 fs-6">Opinión</span>
+            </NavLink>
+            
+            <hr class="my-2 text-muted opacity-25" />
+
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="soporte" @onclick="CerrarMenu">
+                <i class="bi bi-headset fs-5 text-secondary"></i> <span class="ms-3 fs-6">Soporte / Ayuda</span>
+            </NavLink>
+
+            <a class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="javascript:void(0)" @onclick="CerrarSesion">
+                <i class="bi bi-box-arrow-right fs-5 text-secondary"></i> <span class="ms-3 fs-6">Cerrar Sesión</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Bottom Delete Account -->
+    <div class="px-3 pb-4 pt-2 mt-auto">
+        <a class="nav-link text-danger fw-bold px-3 d-flex align-items-center" href="javascript:void(0)" @onclick="CerrarMenu">
+            <i class="bi bi-trash-fill fs-5 me-3"></i> <span class="fs-6">Eliminar mi cuenta</span>
+        </a>
+    </div>
+</div>
+
+<style>
+    .nav-link.active {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        color: #0d6efd !important;
+    }
+    .nav-link.active i {
+        color: #0d6efd !important;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private async Task CerrarMenu()
+    {
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private async Task CerrarSesion()
+    {
+        Auth.Logout();
+        Nav.NavigateTo("/login");
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+}

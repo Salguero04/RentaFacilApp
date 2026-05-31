@@ -1,0 +1,89 @@
+using Microsoft.EntityFrameworkCore;
+using RentaFacil.API.Data;
+using QuestPDF.Infrastructure;
+
+// Configure QuestPDF License (Community)
+QuestPDF.Settings.License = LicenseType.Community;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllers();
+
+// Configure SQLite DbContext
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=rentafacil.db"));
+
+// Dependency Injection
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInquilinoRepository, RentaFacil.API.Repositories.InquilinoRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IInquilinoService, RentaFacil.API.Services.InquilinoService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInmuebleRepository, RentaFacil.API.Repositories.InmuebleRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IInmuebleService, RentaFacil.API.Services.InmuebleService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IContratoRepository, RentaFacil.API.Repositories.ContratoRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IContratoService, RentaFacil.API.Services.ContratoService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPagoRepository, RentaFacil.API.Repositories.PagoRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IPagoService, RentaFacil.API.Services.PagoService>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IReciboService, RentaFacil.API.Services.ReciboService>();
+
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.Migrate();
+
+    if (!context.Inquilinos.Any())
+    {
+        var inq = new RentaFacil.API.Models.Inquilino { NombreCompleto = "Mario Salguero (Dummy)", Identificacion = "1234567", Telefono = "555-0100", FechaRegistro = DateTime.Now, UsuarioId = 1 };
+        context.Inquilinos.Add(inq);
+        context.SaveChanges();
+        
+        var inm = new RentaFacil.API.Models.Inmueble { Nombre = "Edificio Central", Direccion = "Av. Principal 123", Tipo = RentaFacil.Shared.Enums.TipoInmueble.Multiple, MontoRenta = 0, UsuarioId = 1 };
+        context.Inmuebles.Add(inm);
+        context.SaveChanges();
+        
+        var uni = new RentaFacil.API.Models.Unidad { Nombre = "Apt 1A", MontoRenta = 500, Ocupada = true, InmuebleId = inm.Id };
+        context.Unidades.Add(uni);
+        context.SaveChanges();
+        
+        var con = new RentaFacil.API.Models.Contrato { InquilinoId = inq.Id, UnidadId = uni.Id, Monto = 500, Garantia = 500, Frecuencia = RentaFacil.Shared.Enums.FrecuenciaPago.Mensual, DuracionMeses = 12, DiaPago = 5, FechaInicio = DateTime.Now, FechaFin = DateTime.Now.AddMonths(12), Activo = true };
+        context.Contratos.Add(con);
+        context.SaveChanges();
+        
+        var pag = new RentaFacil.API.Models.Pago { ContratoId = con.Id, TotalMonto = 500, ACuenta = 200, Servicios = 0, FechaPago = DateTime.Now, Periodo = "MAY-26", Facturado = false, Completado = false };
+        context.Pagos.Add(pag);
+        context.SaveChanges();
+    }
+}
+
+app.Run();
