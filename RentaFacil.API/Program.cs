@@ -49,7 +49,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Comentado para permitir conexiones HTTP desde el celular en LAN
 
 app.UseCors("AllowAll");
 

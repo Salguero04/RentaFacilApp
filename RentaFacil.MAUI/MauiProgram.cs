@@ -22,8 +22,8 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
-		// API Client Configuration (Using HTTP port 5295 from launchSettings.json)
-		var apiBaseUrl = DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5295" : "http://localhost:5295";
+		// API Client Configuration usando ApiConfig centralizado
+		var apiBaseUrl = RentaFacil.MAUI.Config.ApiConfig.BaseUrl;
 		
 #if DEBUG
 		var handler = new HttpClientHandler

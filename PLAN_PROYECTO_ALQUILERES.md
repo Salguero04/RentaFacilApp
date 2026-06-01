@@ -617,16 +617,16 @@ docker-compose up --build
 ### ✅ Fase 1 — MVP Personal (1-2 meses)
 **Base de datos local SQLite, sin Docker, sin auth compleja**
 
-- [ ] Crear solución con proyectos: `RentaFacil.API`, `RentaFacil.MAUI`, `RentaFacil.Shared`
-- [ ] Configurar EF Core + SQLite + migraciones
-- [ ] CRUD Inquilinos
-- [ ] CRUD Inmuebles (Único y Múltiple)
-- [ ] CRUD Contratos (con cálculo automático de fecha fin)
-- [ ] Módulo Estado de Pagos con indicadores de color
-- [ ] Generación de recibo Ticket (QuestPDF 80mm)
-- [ ] Generación de recibo Carta (QuestPDF A4)
-- [ ] UI básica en Blazor Hybrid (funcional, sin diseño fancy)
-- [ ] Deploy en Android (APK de prueba)
+- [x] Crear solución con proyectos: `RentaFacil.API`, `RentaFacil.MAUI`, `RentaFacil.Shared`
+- [x] Configurar EF Core + SQLite + migraciones
+- [x] CRUD Inquilinos
+- [x] CRUD Inmuebles (Único y Múltiple)
+- [x] CRUD Contratos (con cálculo automático de fecha fin)
+- [x] Módulo Estado de Pagos con indicadores de color
+- [x] Generación de recibo Ticket (QuestPDF 80mm)
+- [x] Generación de recibo Carta (QuestPDF A4)
+- [x] UI básica en Blazor Hybrid (funcional, sin diseño fancy)
+- [x] Deploy en Android (APK de prueba)
 
 ### 🔄 Fase 2 — Multiusuario + Servidor (2-3 meses)
 **Autenticación real, SQL Server, Docker**
