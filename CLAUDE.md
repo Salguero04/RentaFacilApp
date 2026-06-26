@@ -27,9 +27,8 @@ Cada eje en su archivo — abre solo el que necesites:
 ## Pendiente
 Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo (con código de referencia del proyecto hermano CampeonatoATP) vive en → @ClaudeCampeonatoatp.md.
 
-**Seguridad/auditoría — implementado en `feature/seguridad-auditoria` (ver "Último Contexto"):** filtrado por `UsuarioId` (IDOR/BOLA cerrado en las 5 entidades), auditoría de cambios (`IAuditable`+`AuditoriaInterceptor`), cabeceras de seguridad HTTP, validación de cédula/RUC, y autenticación real (JWT+BCrypt+rate limiting). Queda pendiente:
-1. Pruebas de carga k6 antes de escalar usuarios.
-2. Mergear/cerrar la rama `feature/seguridad-auditoria` a `main` (no hecho todavía, pendiente de decisión del usuario).
+**Seguridad/auditoría — implementado y mergeado a `main` (ver "Último Contexto"):** filtrado por `UsuarioId` (IDOR/BOLA cerrado en las 5 entidades), auditoría de cambios (`IAuditable`+`AuditoriaInterceptor`), cabeceras de seguridad HTTP, validación de cédula/RUC, y autenticación real (JWT+BCrypt+rate limiting). Esto cubre los puntos 1-5 del orden de prioridad de @ClaudeCampeonatoatp.md. Queda pendiente solo:
+1. Pruebas de carga k6 antes de escalar usuarios (punto 6 de `ClaudeCampeonatoatp.md`).
 
 **Funcionalidad (Fase 2 / Fase 3, del plan de producto):**
 - Multiusuario real: ASP.NET Identity + JWT, login con Google (OAuth 2.0).
@@ -45,9 +44,9 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 **Fecha:** 2026-06-26
 **Plan ejecutado:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`).
 
-**Plan COMPLETO: Tasks 1-20 commiteadas en `feature/seguridad-auditoria`.** Se implementó autenticación real (JWT+BCrypt), se cerró el IDOR/BOLA en las 5 entidades (Inquilino/Inmueble/Unidad/Contrato/Pago + recibo PDF), auditoría automática de cambios, cabeceras de seguridad HTTP, rate limiting de login y validación de cédula/RUC ecuatoriano. 37 tests verdes. Verificación final (Task 20) hecha con base de datos limpia y API corriendo: login del usuario sembrado, `401` sin token, `400`/`201` según cédula válida/inválida, recibo PDF (`200`, PDF real de 1 página), un segundo usuario registrado no ve ningún dato del primero (`[]`), rate limit corta en `429` al pasar de 10 logins/min, y las cabeceras (`X-Frame-Options: DENY`, CSP, `X-Content-Type-Options`) están presentes en cualquier respuesta. La rama **NO se ha mergeado a `main` todavía** — pendiente de decisión del usuario (siguiente paso natural: `superpowers:finishing-a-development-branch`).
+**Plan COMPLETO Y MERGEADO A `main`: Tasks 1-20.** Se implementó autenticación real (JWT+BCrypt), se cerró el IDOR/BOLA en las 5 entidades (Inquilino/Inmueble/Unidad/Contrato/Pago + recibo PDF), auditoría automática de cambios, cabeceras de seguridad HTTP, rate limiting de login y validación de cédula/RUC ecuatoriano. 37 tests verdes. Verificación final (Task 20) hecha con base de datos limpia y API corriendo: login del usuario sembrado, `401` sin token, `400`/`201` según cédula válida/inválida, recibo PDF (`200`, PDF real de 1 página), un segundo usuario registrado no ve ningún dato del primero (`[]`), rate limit corta en `429` al pasar de 10 logins/min, y las cabeceras (`X-Frame-Options: DENY`, CSP, `X-Content-Type-Options`) están presentes en cualquier respuesta. La rama se integró a `main` con **fast-forward** (`superpowers:finishing-a-development-branch` → opción "merge local"), se re-verificaron los 37 tests sobre `main` ya mergeado, y se borró la rama `feature/seguridad-auditoria`. El último commit en `main` es `14e10e5` (docs checkpoint).
 
-**Resumen de los 20 commits, en orden, en `feature/seguridad-auditoria`:**
+**Resumen de los 20 commits que trajo el merge (en orden):**
 1. Paquetes BCrypt+JwtBearer.
 2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
 3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
@@ -69,6 +68,6 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 19. `Login.razor` reescrito: se quitan las vistas "register"/"recover" (no hay registro público ni se puede mostrar una contraseña hasheada con BCrypt); queda solo el form de login llamando `await Auth.LoginAsync(...)`. `MainLayout.razor`: `OnInitializedAsync` ahora hace `await Auth.InicializarAsync()` antes de chequear `IsAuthenticated` (reemplaza el `OnAfterRender` viejo no-async). Verificado con `dotnet build RentaFacil.MAUI -f net10.0-android` → éxito.
 20. Verificación final: `dotnet build RentaFacil.API` limpio, `dotnet build RentaFacil.MAUI -f net10.0-android` limpio (el `.slnx` completo sigue fallando por el bug preexistente no relacionado de RID de Android contra `RentaFacil.API`, confirmado no causado por este trabajo), `dotnet test RentaFacil.Tests` → 37/37 verdes. Smoke test manual con base de datos limpia (se borró `rentafacil.db`/`-shm`/`-wal` y se dejó que el seed la regenere): los 9 puntos del checklist del plan pasaron (401 sin token, login seed, 200 con token, 400/201 según cédula, recibo PDF real, aislamiento de un segundo usuario, rate limit en 429, cabeceras de seguridad presentes).
 
-**Próximo paso sugerido:** invocar `superpowers:finishing-a-development-branch` para decidir merge/PR/cleanup de `feature/seguridad-auditoria` — el plan de 20 tasks está completo pero la rama no se ha integrado a `main`.
+**Próximo paso sugerido:** el plan de seguridad/auditoría está cerrado y en `main`. Lo único pendiente de ese eje es el punto 6 de `ClaudeCampeonatoatp.md` (pruebas de carga k6 antes de escalar a más usuarios). El resto del trabajo abierto vive en la sección "Pendiente" → "Funcionalidad (Fase 2 / Fase 3)" de este archivo.
 
 **Cuidado con procesos huérfanos:** durante esta sesión, `dotnet run` en background dejó el `.dll`/`.exe` bloqueados varias veces. Antes de rebuildear: `netstat -ano | grep 5295` (Bash tool, Git Bash) para hallar el PID en `LISTENING`, luego `taskkill //PID <pid> //F`. Preferir `timeout 20 dotnet run --no-build` en vez de `(dotnet run &)` suelto para que se auto-mate solo.
