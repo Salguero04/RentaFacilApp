@@ -14,10 +14,15 @@ public class AppDbContext : DbContext
     public DbSet<Unidad> Unidades { get; set; }
     public DbSet<Contrato> Contratos { get; set; }
     public DbSet<Pago> Pagos { get; set; }
+    public DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.NombreUsuario)
+            .IsUnique();
 
         modelBuilder.Entity<Inmueble>()
             .HasMany(i => i.Unidades)
