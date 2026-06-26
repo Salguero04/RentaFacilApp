@@ -1,5 +1,10 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RentaFacil.API.Data;
+using RentaFacil.API.Services.Interfaces;
 using QuestPDF.Infrastructure;
 
 // Configure QuestPDF License (Community)
@@ -24,6 +29,34 @@ builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IContratoService, 
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPagoRepository, RentaFacil.API.Repositories.PagoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IPagoService, RentaFacil.API.Services.PagoService>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IReciboService, RentaFacil.API.Services.ReciboService>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IUsuarioRepository, RentaFacil.API.Repositories.UsuarioRepository>();
+builder.Services.AddScoped<IAutenticacionService, RentaFacil.API.Services.AutenticacionService>();
+
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Falta configurar Jwt:Key. Ejecuta: dotnet user-secrets set \"Jwt:Key\" \"<clave>\" --project RentaFacil.API");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -53,6 +86,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
