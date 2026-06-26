@@ -49,19 +49,22 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 **Fecha:** 2026-06-26
 **Plan en ejecución:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`, no mergeada).
 
-**Tasks 1-5 COMPLETAS y commiteadas** (commits en orden): paquetes BCrypt+JwtBearer; entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`); DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`; `AutenticacionService` (BCrypt+JWT, 5 tests verdes); `AuthController` + wiring JWT Bearer + `AddAuthorization` con `FallbackPolicy = RequireAuthenticatedUser()` en `Program.cs`. `Jwt:Key` vía `dotnet user-secrets` (no hardcodeado). Checkpoint de `CLAUDE.md` para Tasks 1-5 commiteado en `e689a02`.
+**Tasks 1-9 COMPLETAS y commiteadas** — la base de autenticación está 100% funcional end-to-end (verificado: login real devuelve JWT, el token da acceso a `/api/inquilinos`). Commits en orden en `feature/seguridad-auditoria`:
+1. Paquetes BCrypt+JwtBearer.
+2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
+3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
+4. `AutenticacionService` (BCrypt+JWT, 5 tests verdes).
+5. `AuthController` + wiring JWT Bearer + `AddAuthorization` con `FallbackPolicy = RequireAuthenticatedUser()`.
+6. Cabeceras de seguridad HTTP (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`). **Nota:** un "bug de Swagger bloqueado por 401" que parecía existir era un falso positivo de testing — `curl -I` envía `HEAD` (Swagger no lo maneja, cae al fallback auth); con GET real (`curl -i`) Swagger responde `200` sin token. No hace falta `UseWhen` ni excepción especial para `/swagger`. **Si algo "parece" bloqueado, probar primero con GET real antes de tocar el pipeline de auth.**
+7. Rate limiting en `/api/auth/login` (política `"auth"`, 10/min por IP, verificado: intento 11 → `429`).
+8. `ClaimsPrincipalExtensions.ObtenerUsuarioId()` (2 tests verdes).
+9. Siembra del usuario dueño desde `SeedAdmin:Usuario`/`SeedAdmin:Password` (user-secrets) + remapeo de `Inquilino`/`Inmueble` existentes al `Id` real del admin (sin asumir `1`). Verificado con base limpia: login real con `duenotest`/`CambiaEstaClave123!` (estas son credenciales de **desarrollo local**, viven solo en user-secrets de esta máquina, no en el repo).
 
-**Task 6 (cabeceras de seguridad HTTP) — COMPLETA y commiteada** (`f63f998`). Nota para el futuro: el "bug de Swagger bloqueado por 401" que parecía existir era un **falso positivo de testing** — `curl -I` envía `HEAD`, que Swagger no maneja y cae al fallback de auth; con `curl -i`/GET real, Swagger responde `200` sin token y los endpoints protegidos siguen en `401`. No hace falta ningún `UseWhen` ni excepción especial para `/swagger` — el `app.UseAuthentication(); app.UseAuthorization();` simple (sin envolver) ya es correcto. **Si algo "parece" bloqueado, probar primero con GET real antes de tocar el pipeline de auth.**
+Commit del `UserSecretsId` en el `.csproj` (necesario para que `dotnet user-secrets` funcione) también hecho (`ff0157c`).
 
 **Pendiente de hacer en cada checkpoint (pedido explícito del usuario):** reescribir esta sección tras cada checkpoint de tasks completadas, no solo al final.
 
-**Detalle exacto de lo que falta por task (7-20), para retomar sin releer el plan completo:**
-
-- **Task 7 — Rate limiting en login.** Modify `Program.cs`: agregar `using System.Threading.RateLimiting;`/`using Microsoft.AspNetCore.RateLimiting;`, `builder.Services.AddRateLimiter(...)` con política `"auth"` (`FixedWindowLimiter`, partición por IP, `Window=1min`, `PermitLimit=10`, `RejectionStatusCode=429`), y `app.UseRateLimiter()` después de `UseAuthorization`. Modify `AuthController.cs`: `[EnableRateLimiting("auth")]` en `Login`. Verificación manual: 11 logins fallidos en <1min, el intento 11 debe dar `429`.
-
-- **Task 8 — `ClaimsPrincipalExtensions`.** Create `RentaFacil.API/Extensions/ClaimsPrincipalExtensions.cs`: método estático `ObtenerUsuarioId(this ClaimsPrincipal)` que lee `ClaimTypes.NameIdentifier`, parsea a `int`, lanza `InvalidOperationException` si falta o no parsea. Create `RentaFacil.Tests/ClaimsPrincipalExtensionsTests.cs` (TDD: 2 tests — con claim válido devuelve el id; sin claim lanza excepción).
-
-- **Task 9 — Siembra del usuario dueño + remapeo.** `dotnet user-secrets set "SeedAdmin:Usuario" "<usuario>"` y `"SeedAdmin:Password" "<password>"` --project RentaFacil.API. Modify `Program.cs`: en el bloque de startup, si `!context.Usuarios.Any()`, leer esas 2 claves de configuración (lanzar excepción clara si faltan), crear el `Usuario` Administrador con `BCrypt.HashPassword`, `SaveChanges()`, luego remapear `Inquilino.UsuarioId`/`Inmueble.UsuarioId` *existentes* al `admin.Id` real (foreach + `SaveChanges()`, sin asumir que sea `1`), y el seed de datos dummy ya existente pasa a usar `admin.Id` en vez del literal `1`. Verificación manual: borrar `rentafacil.db`, correr la API, login con las credenciales sembradas → `200` con token, `GET /api/inquilinos` con ese token → devuelve el dummy.
+**Detalle exacto de lo que falta por task (10-20), para retomar sin releer el plan completo:**
 
 - **Task 10 — `IAuditable` en las 5 entidades.** Create `RentaFacil.API/Models/IAuditable.cs` (props `int? CreadoPorId`, `DateTime? FechaCreacion`, `int? ModificadoPorId`, `DateTime? FechaModificacion` — **`int?`, no `long?`**, para matchear `Usuario.Id`). Modify `Inquilino.cs`/`Inmueble.cs`/`Unidad.cs`/`Contrato.cs`/`Pago.cs`: cada uno `: IAuditable` + las 4 props. Migración `dotnet ef migrations add AddAuditoriaColumns --project RentaFacil.API --startup-project RentaFacil.API`.
 
