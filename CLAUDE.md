@@ -27,13 +27,9 @@ Cada eje en su archivo — abre solo el que necesites:
 ## Pendiente
 Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo (con código de referencia del proyecto hermano CampeonatoATP) vive en → @ClaudeCampeonatoatp.md.
 
-**Seguridad/auditoría (prioridad, ver ClaudeCampeonatoatp.md para el detalle y orden):**
-1. 🔴 **Filtrar por `UsuarioId`** en repos/services — hoy cualquiera lee/edita datos de cualquier usuario (IDOR/BOLA confirmado). Es lo más urgente.
-2. Auditoría de cambios (`IAuditable` + `SaveChangesInterceptor`): quién/cuándo creó/modificó cada fila.
-3. Cabeceras de seguridad HTTP en `Program.cs` (X-Frame-Options, CSP, etc.).
-4. Validación de cédula/identificación (atributo reutilizable para `Inquilino.Identificacion`).
-5. Autenticación real de servidor (BCrypt + roles + rate limiting de login) — solo cuando haga falta multiusuario.
-6. Pruebas de carga k6 antes de escalar usuarios.
+**Seguridad/auditoría — implementado en `feature/seguridad-auditoria` (ver "Último Contexto"):** filtrado por `UsuarioId` (IDOR/BOLA cerrado en las 5 entidades), auditoría de cambios (`IAuditable`+`AuditoriaInterceptor`), cabeceras de seguridad HTTP, validación de cédula/RUC, y autenticación real (JWT+BCrypt+rate limiting). Queda pendiente:
+1. Pruebas de carga k6 antes de escalar usuarios.
+2. Mergear/cerrar la rama `feature/seguridad-auditoria` a `main` (no hecho todavía, pendiente de decisión del usuario).
 
 **Funcionalidad (Fase 2 / Fase 3, del plan de producto):**
 - Multiusuario real: ASP.NET Identity + JWT, login con Google (OAuth 2.0).
@@ -47,9 +43,11 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 > Sección de handoff: dónde quedó el trabajo y cómo continuar. **Reescribir** (no acumular histórico) tras cada cambio mediano/mayor.
 
 **Fecha:** 2026-06-26
-**Plan en ejecución:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`, no mergeada).
+**Plan ejecutado:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`).
 
-**Tasks 1-17 COMPLETAS y commiteadas** (85%) — **el hallazgo de seguridad #1 original (IDOR/BOLA en las 5 entidades) está completamente cerrado**, con autenticación JWT real, auditoría automática y validación de cédula/RUC como base. Verificado end-to-end repetidamente con un segundo usuario real (`otro`/`Propietario`, registrado vía `/api/auth/registrar`) que no puede ver, leer, ni crear sobre ningún dato del admin (`duenotest`) en Inquilino, Inmueble, Unidad, Contrato, Pago, ni generar su recibo PDF. Commits en orden en `feature/seguridad-auditoria`:
+**Plan COMPLETO: Tasks 1-20 commiteadas en `feature/seguridad-auditoria`.** Se implementó autenticación real (JWT+BCrypt), se cerró el IDOR/BOLA en las 5 entidades (Inquilino/Inmueble/Unidad/Contrato/Pago + recibo PDF), auditoría automática de cambios, cabeceras de seguridad HTTP, rate limiting de login y validación de cédula/RUC ecuatoriano. 37 tests verdes. Verificación final (Task 20) hecha con base de datos limpia y API corriendo: login del usuario sembrado, `401` sin token, `400`/`201` según cédula válida/inválida, recibo PDF (`200`, PDF real de 1 página), un segundo usuario registrado no ve ningún dato del primero (`[]`), rate limit corta en `429` al pasar de 10 logins/min, y las cabeceras (`X-Frame-Options: DENY`, CSP, `X-Content-Type-Options`) están presentes en cualquier respuesta. La rama **NO se ha mergeado a `main` todavía** — pendiente de decisión del usuario (siguiente paso natural: `superpowers:finishing-a-development-branch`).
+
+**Resumen de los 20 commits, en orden, en `feature/seguridad-auditoria`:**
 1. Paquetes BCrypt+JwtBearer.
 2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
 3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
@@ -67,19 +65,10 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 15. IDOR cerrado en Contrato: `ContratoService` valida que `InquilinoId`/`UnidadId` del dto pertenezcan al usuario (vía los repos ya filtrados de Inquilino/Unidad) antes de crear/actualizar. Migración `AddUsuarioIdToContrato`.
 16. IDOR cerrado en Pago + recibo PDF: `PagoService` valida `ContratoId`; `ReciboService.GenerarReciboPdfAsync(pagoId, usuarioId, formato)` ahora filtra los 3 repos que consulta (Pago/Contrato/Inquilino) — un usuario sin acceso al pago recibe `404` al pedir el recibo. Migración `AddUsuarioIdToPago`.
 17. Validación de cédula/RUC ecuatoriano: `RentaFacil.Shared/Validaciones/IdentificacionEcuatorianaAttribute.cs` (módulo 10 para cédula/RUC natural, módulo 11 para RUC sociedad), aplicado en `CrearInquilinoDto.Identificacion`. **Gotcha real encontrado y corregido:** en un `record`, el atributo de validación debe ir directo sobre el parámetro del constructor (`[IdentificacionEcuatoriana] string Identificacion`), NO con `[property: IdentificacionEcuatoriana]` — esta segunda forma compila y pasa los tests unitarios (que llaman `_attribute.IsValid()` directo) pero revienta en runtime con `InvalidOperationException` en la validación de ASP.NET Core sobre records, devolviendo `500` en vez de `400`/`201` en cualquier request real a `POST /api/inquilinos`. Se detectó solo probando con curl contra la API corriendo, no con los tests. **Lección:** cualquier DTO `record` con atributos de validación en sus parámetros hay que verificarlo con una request HTTP real, no solo con tests unitarios del atributo.
+18. Cliente MAUI — `RentaFacil.MAUI/Services/AuthHeaderHandler.cs` (nuevo): `DelegatingHandler` que lee el token de `SecureStorage` y agrega `Authorization: Bearer`, y dispara `AuthService.Logout()` si la respuesta es `401`. `AuthService.cs` reescrito: ya no recibe `HttpClient` por DI (lo crea él mismo en el constructor, evita ambigüedad de DI con el `HttpClient` con handler de `ApiClient`); gana `InicializarAsync()`, `LoginAsync(usuario,password)`, `Logout()`; se eliminan `Register`/`GetPassword`. `MauiProgram.cs`: ahora solo un `HttpClient` (`Scoped`, envuelto en `AuthHeaderHandler`) para `ApiClient`; `AuthService` queda `Singleton` sin depender de ningún `HttpClient` de DI. Build de Android verificado fallaba inicialmente porque `Login.razor` seguía usando la API vieja (`Login`/`Register`/`GetPassword`) — es un acoplamiento esperado y documentado en el propio plan, resuelto en la Task 19 (commits 18 y 19 hechos por separado, build verificado una sola vez cubriendo ambos).
+19. `Login.razor` reescrito: se quitan las vistas "register"/"recover" (no hay registro público ni se puede mostrar una contraseña hasheada con BCrypt); queda solo el form de login llamando `await Auth.LoginAsync(...)`. `MainLayout.razor`: `OnInitializedAsync` ahora hace `await Auth.InicializarAsync()` antes de chequear `IsAuthenticated` (reemplaza el `OnAfterRender` viejo no-async). Verificado con `dotnet build RentaFacil.MAUI -f net10.0-android` → éxito.
+20. Verificación final: `dotnet build RentaFacil.API` limpio, `dotnet build RentaFacil.MAUI -f net10.0-android` limpio (el `.slnx` completo sigue fallando por el bug preexistente no relacionado de RID de Android contra `RentaFacil.API`, confirmado no causado por este trabajo), `dotnet test RentaFacil.Tests` → 37/37 verdes. Smoke test manual con base de datos limpia (se borró `rentafacil.db`/`-shm`/`-wal` y se dejó que el seed la regenere): los 9 puntos del checklist del plan pasaron (401 sin token, login seed, 200 con token, 400/201 según cédula, recibo PDF real, aislamiento de un segundo usuario, rate limit en 429, cabeceras de seguridad presentes).
 
-37 tests verdes en total. Esto cierra el hallazgo 🔴 #1 de la sección "Pendiente" de este archivo (filtrar por `UsuarioId`) y el punto 4 (validación de cédula) — falta solo actualizar esa sección al terminar todo el plan (Task 20).
-
-Commit del `UserSecretsId` en el `.csproj` (necesario para que `dotnet user-secrets` funcione) también hecho (`ff0157c`).
-
-**Pendiente de hacer en cada checkpoint (pedido explícito del usuario):** reescribir esta sección tras cada checkpoint de tasks completadas, no solo al final.
-
-**Detalle exacto de lo que falta por task (18-20), para retomar sin releer el plan completo:**
-
-- **Task 18 — MAUI `AuthService` + `DelegatingHandler`.** Create `RentaFacil.MAUI/Services/AuthHeaderHandler.cs`: `DelegatingHandler` que lee el token de `SecureStorage` y lo agrega como `Authorization: Bearer`, y si la respuesta es `401` llama `AuthService.Logout()`. Modify `AuthService.cs`: reescritura completa — ya NO recibe `HttpClient` por DI (lo crea él mismo en el constructor, con el mismo `#if DEBUG` cert bypass que tenía `MauiProgram`, para evitar ambigüedad de DI con el `HttpClient` con handler de `ApiClient`); gana `InicializarAsync()` (lee `SecureStorage`), `LoginAsync(usuario,password)` (llama `POST api/auth/login`, guarda token+rol en `SecureStorage`), `Logout()`; se eliminan `Register`/`GetPassword`. Modify `MauiProgram.cs`: un solo `HttpClient` (`Scoped`) envuelto en `AuthHeaderHandler` para `ApiClient`; `AuthService` `Singleton` sin depender de ningún `HttpClient` de DI. Verificación: `dotnet build RentaFacil.MAUI -f net10.0-android`.
-
-- **Task 19 — `Login.razor` simplificado.** Modify `Login.razor`: reescritura completa — se quitan las vistas "register"/"recover"; queda solo el form de login, `await Auth.LoginAsync(...)`. Modify `MainLayout.razor`: `OnInitializedAsync` hace `await Auth.InicializarAsync()` antes de chequear `IsAuthenticated` (se quita el `OnAfterRender` viejo no-async).
-
-- **Task 20 — Verificación final completa.** `dotnet build RentaFacil.API` (no el `.slnx` completo, por el bug preexistente de build Android en Windows, confirmado con `git stash` que no lo causamos nosotros) + `dotnet test RentaFacil.Tests` (todo en verde) + smoke test manual end-to-end (login, CRUD con cédula válida/inválida, recibo PDF, 2do usuario no ve datos del 1ro, rate limit, cabeceras) + actualizar `CLAUDE.md` sección "Pendiente" (quitar puntos ya resueltos) y "Último Contexto" final.
+**Próximo paso sugerido:** invocar `superpowers:finishing-a-development-branch` para decidir merge/PR/cleanup de `feature/seguridad-auditoria` — el plan de 20 tasks está completo pero la rama no se ha integrado a `main`.
 
 **Cuidado con procesos huérfanos:** durante esta sesión, `dotnet run` en background dejó el `.dll`/`.exe` bloqueados varias veces. Antes de rebuildear: `netstat -ano | grep 5295` (Bash tool, Git Bash) para hallar el PID en `LISTENING`, luego `taskkill //PID <pid> //F`. Preferir `timeout 20 dotnet run --no-build` en vez de `(dotnet run &)` suelto para que se auto-mate solo.
