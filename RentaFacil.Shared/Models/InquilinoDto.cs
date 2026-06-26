@@ -1,8 +1,10 @@
+using RentaFacil.Shared.Validaciones;
+
 namespace RentaFacil.Shared.Models;
 
 public record CrearInquilinoDto(
     string NombreCompleto,
-    string Identificacion,
+    [IdentificacionEcuatoriana] string Identificacion,
     string? Telefono,
     string? FotoUrl
 );
