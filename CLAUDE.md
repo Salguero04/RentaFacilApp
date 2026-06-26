@@ -49,7 +49,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 **Fecha:** 2026-06-26
 **Plan en ejecución:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`, no mergeada).
 
-**Tasks 1-11 COMPLETAS y commiteadas** — la base de autenticación + auditoría está 100% funcional end-to-end (verificado: login real devuelve JWT, el token da acceso a `/api/inquilinos`, el seed sobrevive al `AuditoriaInterceptor` sin `HttpContext`). Commits en orden en `feature/seguridad-auditoria`:
+**Tasks 1-14 COMPLETAS y commiteadas** (70%) — autenticación, auditoría, e IDOR cerrado en Inquilino/Inmueble/Unidad, todo verificado end-to-end con un segundo usuario real (registrado vía `/api/auth/registrar`) que no puede ver ni crear sobre datos del admin. Commits en orden en `feature/seguridad-auditoria`:
 1. Paquetes BCrypt+JwtBearer.
 2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
 3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
@@ -61,18 +61,17 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 9. Siembra del usuario dueño desde `SeedAdmin:Usuario`/`SeedAdmin:Password` (user-secrets) + remapeo de `Inquilino`/`Inmueble` existentes al `Id` real del admin (sin asumir `1`). Verificado con base limpia: login real con `duenotest`/`CambiaEstaClave123!` (estas son credenciales de **desarrollo local**, viven solo en user-secrets de esta máquina, no en el repo).
 10. `IAuditable` (`int?` no `long?`) implementado en las 5 entidades + migración `AddAuditoriaColumns`. 14 tests verdes en total.
 11. `AuditoriaInterceptor` (`SaveChangesInterceptor`) registrado en `AddDbContext` vía el overload `(sp, options) => ...AddInterceptors(...)`. 3 tests verdes con `SqliteConnection(":memory:")`, incluyendo el caso `HttpContext == null` (el seed de la Task 9 corre sin request HTTP activa). Verificado manualmente: la API arranca limpio con base nueva, sin excepciones.
+12. IDOR cerrado en Inquilino: `CrearInquilinoDto` ya no recibe `UsuarioId` del cliente, todo el filtrado vive en `InquilinoRepository`. Nota de implementación: este cambio de firma rompió `ReciboService.GenerarReciboPdfAsync` (llamaba a `IInquilinoRepository.GetByIdAsync` sin `usuarioId`) — se le agregó el parámetro `usuarioId` ahí mismo como fix de compilación mínimo; el cierre completo del IDOR de recibos (Pago/Contrato) es la Task 16.
+13. IDOR cerrado en Inmueble, mismo patrón.
+14. `Unidad` ganó su propio `IUnidadRepository`/`UnidadService` (ya no usa `AppDbContext` directo en el controller — cerraba el anti-patrón de `errores-conocidos.md`), `UsuarioId` propio, y `CrearAsync` valida que el `InmuebleId` del dto pertenezca al usuario autenticado (si no, `400`). Migración `AddUsuarioIdToUnidad` (con `defaultValue: 0` + remapeo en el seed vía `Include(u => u.Inmueble)`).
+
+22 tests verdes en total. Verificación manual end-to-end repetida en cada task: usuario `otro` (`Propietario`, registrado vía `/api/auth/registrar`) ve listas vacías y `404`/`400` al intentar leer o crear sobre datos del admin (`duenotest`).
 
 Commit del `UserSecretsId` en el `.csproj` (necesario para que `dotnet user-secrets` funcione) también hecho (`ff0157c`).
 
 **Pendiente de hacer en cada checkpoint (pedido explícito del usuario):** reescribir esta sección tras cada checkpoint de tasks completadas, no solo al final.
 
-**Detalle exacto de lo que falta por task (12-20), para retomar sin releer el plan completo:**
-
-- **Task 12 — IDOR en Inquilino.** Modify `IInquilinoRepository.cs`/`InquilinoRepository.cs`: `GetAllAsync`/`GetByIdAsync`/`DeleteAsync` reciben `usuarioId`, filtran `Where(i => i.UsuarioId == usuarioId)`. Modify `IInquilinoService.cs`/`InquilinoService.cs`: mismas firmas +`usuarioId`; `CrearAsync` ya NO toma `UsuarioId` del dto. Modify `InquilinosController.cs`: `User.ObtenerUsuarioId()` en cada acción. Modify `RentaFacil.Shared/Models/InquilinoDto.cs`: quitar `UsuarioId` de `CrearInquilinoDto`. Modify `RentaFacil.MAUI/Components/Pages/CrearInquilino.razor`: quitar el `1` hardcodeado. Modify `RentaFacil.Tests/InquilinoServiceTests.cs`: nuevas firmas + 2 tests nuevos de IDOR.
-
-- **Task 13 — IDOR en Inmueble.** Mismo patrón exacto que la Task 12 pero para `Inmueble`: `IInmuebleRepository.cs`/`InmuebleRepository.cs`/`IInmuebleService.cs`/`InmuebleService.cs`/`InmueblesController.cs`/`InmuebleDto.cs` (quitar `UsuarioId` de `CrearInmuebleDto`)/`CrearInmueble.razor` (quitar el `1`)/`OtherServiceTests.cs` (clase `InmuebleServiceTests`).
-
-- **Task 14 — Unidad gana Repository/Service propio + `UsuarioId` + IDOR.** Modify `Unidad.cs`: agregar `UsuarioId`. Create `IUnidadRepository.cs`/`UnidadRepository.cs` (mismo patrón filtrado). Create `IUnidadService.cs`/`UnidadService.cs`: `CrearAsync` valida que `dto.InmuebleId` pertenezca a `usuarioId` (vía `IInmuebleRepository.GetByIdAsync`), devuelve `null` si no. Modify `OtherControllers.cs`: `UnidadesController` deja de inyectar `AppDbContext` directo, usa `IUnidadService` (cierra el anti-patrón de `errores-conocidos.md`). Modify `Program.cs`: registrar `IUnidadRepository`/`IUnidadService`; extender el seed (Task 9) para remapear `Unidad.UsuarioId = Inmueble.UsuarioId` de su padre. Migración `AddUsuarioIdToUnidad`. Create `RentaFacil.Tests/UnidadServiceTests.cs`: 2 tests.
+**Detalle exacto de lo que falta por task (15-20), para retomar sin releer el plan completo:**
 
 - **Task 15 — IDOR en Contrato.** Modify `Contrato.cs`: agregar `UsuarioId`. Modify `IOtherRepositories.cs`/`OtherRepositories.cs` (`ContratoRepository`): filtrado. Modify `IOtherServices.cs`/`OtherServices.cs` (`ContratoService`): constructor gana `IInquilinoRepository`+`IUnidadRepository` para validar que `InquilinoId`/`UnidadId` del dto pertenezcan al `usuarioId`; `CrearAsync`/`UpdateAsync` devuelven `null`/`false` si no. Modify `OtherControllers.cs` (`ContratosController`): `User.ObtenerUsuarioId()` + manejar `null`/`false` con `BadRequest`/`NotFound`. Migración `AddUsuarioIdToContrato`. Extender seed: `Contrato.UsuarioId = Inquilino.UsuarioId` de su padre. Modify `OtherServiceTests.cs` (`ContratoServiceTests`).
 
