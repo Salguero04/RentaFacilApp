@@ -125,7 +125,7 @@
 
     private async Task Guardar()
     {
-        var dto = new CrearInmuebleDto(nombre, direccion, tipo, montoRenta, 1);
+        var dto = new CrearInmuebleDto(nombre, direccion, tipo, montoRenta);
         try
         {
             if (Id.HasValue)

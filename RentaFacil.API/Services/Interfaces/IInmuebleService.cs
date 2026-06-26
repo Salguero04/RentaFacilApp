@@ -4,9 +4,9 @@ namespace RentaFacil.API.Services.Interfaces;
 
 public interface IInmuebleService
 {
-    Task<IEnumerable<InmuebleDto>> GetAllAsync();
-    Task<InmuebleDto?> GetByIdAsync(int id);
-    Task<InmuebleDto> CrearAsync(CrearInmuebleDto dto);
-    Task UpdateAsync(int id, CrearInmuebleDto dto);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<InmuebleDto>> GetAllAsync(int usuarioId);
+    Task<InmuebleDto?> GetByIdAsync(int id, int usuarioId);
+    Task<InmuebleDto> CrearAsync(CrearInmuebleDto dto, int usuarioId);
+    Task UpdateAsync(int id, CrearInmuebleDto dto, int usuarioId);
+    Task DeleteAsync(int id, int usuarioId);
 }

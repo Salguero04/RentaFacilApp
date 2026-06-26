@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RentaFacil.API.Extensions;
 using RentaFacil.API.Services.Interfaces;
 using RentaFacil.Shared.Models;
 
@@ -18,14 +19,14 @@ public class InmueblesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var inmuebles = await _service.GetAllAsync();
+        var inmuebles = await _service.GetAllAsync(User.ObtenerUsuarioId());
         return Ok(inmuebles);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var inmueble = await _service.GetByIdAsync(id);
+        var inmueble = await _service.GetByIdAsync(id, User.ObtenerUsuarioId());
         if (inmueble == null) return NotFound();
         return Ok(inmueble);
     }
@@ -33,21 +34,21 @@ public class InmueblesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CrearInmuebleDto dto)
     {
-        var result = await _service.CrearAsync(dto);
+        var result = await _service.CrearAsync(dto, User.ObtenerUsuarioId());
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] CrearInmuebleDto dto)
     {
-        await _service.UpdateAsync(id, dto);
+        await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _service.DeleteAsync(id);
+        await _service.DeleteAsync(id, User.ObtenerUsuarioId());
         return NoContent();
     }
 }

@@ -6,8 +6,7 @@ public record CrearInmuebleDto(
     string Nombre,
     string Direccion,
     TipoInmueble Tipo,
-    decimal MontoRenta,
-    int UsuarioId
+    decimal MontoRenta
 );
 
 public record InmuebleDto(

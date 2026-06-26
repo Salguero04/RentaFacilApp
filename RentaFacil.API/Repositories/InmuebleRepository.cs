@@ -14,14 +14,14 @@ public class InmuebleRepository : IInmuebleRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Inmueble>> GetAllAsync()
+    public async Task<IEnumerable<Inmueble>> GetAllAsync(int usuarioId)
     {
-        return await _context.Inmuebles.ToListAsync();
+        return await _context.Inmuebles.Where(i => i.UsuarioId == usuarioId).ToListAsync();
     }
 
-    public async Task<Inmueble?> GetByIdAsync(int id)
+    public async Task<Inmueble?> GetByIdAsync(int id, int usuarioId)
     {
-        return await _context.Inmuebles.FirstOrDefaultAsync(i => i.Id == id);
+        return await _context.Inmuebles.FirstOrDefaultAsync(i => i.Id == id && i.UsuarioId == usuarioId);
     }
 
     public async Task<Inmueble> AddAsync(Inmueble inmueble)
@@ -37,9 +37,9 @@ public class InmuebleRepository : IInmuebleRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        var inmueble = await _context.Inmuebles.FindAsync(id);
+        var inmueble = await _context.Inmuebles.FirstOrDefaultAsync(i => i.Id == id && i.UsuarioId == usuarioId);
         if (inmueble != null)
         {
             _context.Inmuebles.Remove(inmueble);

@@ -22,19 +22,27 @@ public class InmuebleServiceTests
     [Fact]
     public async Task GetAllAsync_ShouldReturnInmuebles()
     {
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Inmueble> { new Inmueble { Id = 1, Nombre = "Casa 1", Direccion = "Calle 1" } });
-        var result = await _service.GetAllAsync();
+        _repositoryMock.Setup(r => r.GetAllAsync(1)).ReturnsAsync(new List<Inmueble> { new Inmueble { Id = 1, Nombre = "Casa 1", Direccion = "Calle 1" } });
+        var result = await _service.GetAllAsync(1);
         result.Should().HaveCount(1);
     }
 
     [Fact]
     public async Task CrearAsync_ShouldReturnCreatedInmueble()
     {
-        var dto = new CrearInmuebleDto("Edificio A", "Avenida 2", TipoInmueble.Multiple, 0, 1);
+        var dto = new CrearInmuebleDto("Edificio A", "Avenida 2", TipoInmueble.Multiple, 0);
         _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Inmueble>())).ReturnsAsync(new Inmueble { Id = 2, Nombre = dto.Nombre, Tipo = dto.Tipo });
-        var result = await _service.CrearAsync(dto);
+        var result = await _service.CrearAsync(dto, 1);
         result.Nombre.Should().Be("Edificio A");
         result.Id.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ConUsuarioIdDeOtroUsuario_NoDevuelveElInmueble()
+    {
+        _repositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync((Inmueble?)null);
+        var result = await _service.GetByIdAsync(1, 99);
+        result.Should().BeNull();
     }
 }
 

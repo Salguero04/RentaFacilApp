@@ -14,19 +14,19 @@ public class InmuebleService : IInmuebleService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<InmuebleDto>> GetAllAsync()
+    public async Task<IEnumerable<InmuebleDto>> GetAllAsync(int usuarioId)
     {
-        var inmuebles = await _repository.GetAllAsync();
+        var inmuebles = await _repository.GetAllAsync(usuarioId);
         return inmuebles.Select(MapToDto);
     }
 
-    public async Task<InmuebleDto?> GetByIdAsync(int id)
+    public async Task<InmuebleDto?> GetByIdAsync(int id, int usuarioId)
     {
-        var inmueble = await _repository.GetByIdAsync(id);
+        var inmueble = await _repository.GetByIdAsync(id, usuarioId);
         return inmueble != null ? MapToDto(inmueble) : null;
     }
 
-    public async Task<InmuebleDto> CrearAsync(CrearInmuebleDto dto)
+    public async Task<InmuebleDto> CrearAsync(CrearInmuebleDto dto, int usuarioId)
     {
         var inmueble = new Inmueble
         {
@@ -34,30 +34,29 @@ public class InmuebleService : IInmuebleService
             Direccion = dto.Direccion,
             Tipo = dto.Tipo,
             MontoRenta = dto.MontoRenta,
-            UsuarioId = dto.UsuarioId
+            UsuarioId = usuarioId
         };
 
         var created = await _repository.AddAsync(inmueble);
         return MapToDto(created);
     }
 
-    public async Task UpdateAsync(int id, CrearInmuebleDto dto)
+    public async Task UpdateAsync(int id, CrearInmuebleDto dto, int usuarioId)
     {
-        var inmueble = await _repository.GetByIdAsync(id);
+        var inmueble = await _repository.GetByIdAsync(id, usuarioId);
         if (inmueble != null)
         {
             inmueble.Nombre = dto.Nombre;
             inmueble.Direccion = dto.Direccion;
             inmueble.Tipo = dto.Tipo;
             inmueble.MontoRenta = dto.MontoRenta;
-            inmueble.UsuarioId = dto.UsuarioId;
             await _repository.UpdateAsync(inmueble);
         }
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        await _repository.DeleteAsync(id);
+        await _repository.DeleteAsync(id, usuarioId);
     }
 
     private static InmuebleDto MapToDto(Inmueble i)
