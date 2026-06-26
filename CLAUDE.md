@@ -49,7 +49,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 **Fecha:** 2026-06-26
 **Plan en ejecución:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`, no mergeada).
 
-**Tasks 1-9 COMPLETAS y commiteadas** — la base de autenticación está 100% funcional end-to-end (verificado: login real devuelve JWT, el token da acceso a `/api/inquilinos`). Commits en orden en `feature/seguridad-auditoria`:
+**Tasks 1-11 COMPLETAS y commiteadas** — la base de autenticación + auditoría está 100% funcional end-to-end (verificado: login real devuelve JWT, el token da acceso a `/api/inquilinos`, el seed sobrevive al `AuditoriaInterceptor` sin `HttpContext`). Commits en orden en `feature/seguridad-auditoria`:
 1. Paquetes BCrypt+JwtBearer.
 2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
 3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
@@ -59,16 +59,14 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 7. Rate limiting en `/api/auth/login` (política `"auth"`, 10/min por IP, verificado: intento 11 → `429`).
 8. `ClaimsPrincipalExtensions.ObtenerUsuarioId()` (2 tests verdes).
 9. Siembra del usuario dueño desde `SeedAdmin:Usuario`/`SeedAdmin:Password` (user-secrets) + remapeo de `Inquilino`/`Inmueble` existentes al `Id` real del admin (sin asumir `1`). Verificado con base limpia: login real con `duenotest`/`CambiaEstaClave123!` (estas son credenciales de **desarrollo local**, viven solo en user-secrets de esta máquina, no en el repo).
+10. `IAuditable` (`int?` no `long?`) implementado en las 5 entidades + migración `AddAuditoriaColumns`. 14 tests verdes en total.
+11. `AuditoriaInterceptor` (`SaveChangesInterceptor`) registrado en `AddDbContext` vía el overload `(sp, options) => ...AddInterceptors(...)`. 3 tests verdes con `SqliteConnection(":memory:")`, incluyendo el caso `HttpContext == null` (el seed de la Task 9 corre sin request HTTP activa). Verificado manualmente: la API arranca limpio con base nueva, sin excepciones.
 
 Commit del `UserSecretsId` en el `.csproj` (necesario para que `dotnet user-secrets` funcione) también hecho (`ff0157c`).
 
 **Pendiente de hacer en cada checkpoint (pedido explícito del usuario):** reescribir esta sección tras cada checkpoint de tasks completadas, no solo al final.
 
-**Detalle exacto de lo que falta por task (10-20), para retomar sin releer el plan completo:**
-
-- **Task 10 — `IAuditable` en las 5 entidades.** Create `RentaFacil.API/Models/IAuditable.cs` (props `int? CreadoPorId`, `DateTime? FechaCreacion`, `int? ModificadoPorId`, `DateTime? FechaModificacion` — **`int?`, no `long?`**, para matchear `Usuario.Id`). Modify `Inquilino.cs`/`Inmueble.cs`/`Unidad.cs`/`Contrato.cs`/`Pago.cs`: cada uno `: IAuditable` + las 4 props. Migración `dotnet ef migrations add AddAuditoriaColumns --project RentaFacil.API --startup-project RentaFacil.API`.
-
-- **Task 11 — `AuditoriaInterceptor`.** Create `RentaFacil.API/Data/AuditoriaInterceptor.cs`: `SaveChangesInterceptor`, override `SavingChanges`/`SavingChangesAsync`, recorre `context.ChangeTracker.Entries<IAuditable>()`, sella `Creado*`+`Modificado*` en `Added`, solo `Modificado*` en `Modified`; usuario actual desde `IHttpContextAccessor.HttpContext?.User` (claim `NameIdentifier`), **si `HttpContext` es null no lanza excepción**, deja `*PorId` en `null`. Modify `Program.cs`: registrar `AuditoriaInterceptor` como `Scoped` y pasarlo a `AddDbContext` vía el overload `(sp, options) => options.UseSqlite(...).AddInterceptors(sp.GetRequiredService<AuditoriaInterceptor>())`. Create `RentaFacil.Tests/AuditoriaInterceptorTests.cs`: `SqliteConnection(":memory:")` + `Mock<IHttpContextAccessor>`, 3 tests (Added sella ambos; Modified solo actualiza Modificado*; Added sin HttpContext no lanza excepción).
+**Detalle exacto de lo que falta por task (12-20), para retomar sin releer el plan completo:**
 
 - **Task 12 — IDOR en Inquilino.** Modify `IInquilinoRepository.cs`/`InquilinoRepository.cs`: `GetAllAsync`/`GetByIdAsync`/`DeleteAsync` reciben `usuarioId`, filtran `Where(i => i.UsuarioId == usuarioId)`. Modify `IInquilinoService.cs`/`InquilinoService.cs`: mismas firmas +`usuarioId`; `CrearAsync` ya NO toma `UsuarioId` del dto. Modify `InquilinosController.cs`: `User.ObtenerUsuarioId()` en cada acción. Modify `RentaFacil.Shared/Models/InquilinoDto.cs`: quitar `UsuarioId` de `CrearInquilinoDto`. Modify `RentaFacil.MAUI/Components/Pages/CrearInquilino.razor`: quitar el `1` hardcodeado. Modify `RentaFacil.Tests/InquilinoServiceTests.cs`: nuevas firmas + 2 tests nuevos de IDOR.
 
