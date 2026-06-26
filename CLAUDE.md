@@ -49,7 +49,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 **Fecha:** 2026-06-26
 **Plan en ejecución:** `docs/superpowers/plans/2026-06-26-seguridad-auditoria.md` (20 tasks), spec en `docs/superpowers/specs/2026-06-26-seguridad-auditoria-design.md`, ejecución inline (no subagentes) en la rama `feature/seguridad-auditoria` (creada desde `main`, no mergeada).
 
-**Tasks 1-14 COMPLETAS y commiteadas** (70%) — autenticación, auditoría, e IDOR cerrado en Inquilino/Inmueble/Unidad, todo verificado end-to-end con un segundo usuario real (registrado vía `/api/auth/registrar`) que no puede ver ni crear sobre datos del admin. Commits en orden en `feature/seguridad-auditoria`:
+**Tasks 1-16 COMPLETAS y commiteadas** (80%) — **el hallazgo de seguridad #1 original (IDOR/BOLA en las 5 entidades) está completamente cerrado**, con autenticación JWT real y auditoría automática como base. Verificado end-to-end repetidamente con un segundo usuario real (`otro`/`Propietario`, registrado vía `/api/auth/registrar`) que no puede ver, leer, ni crear sobre ningún dato del admin (`duenotest`) en Inquilino, Inmueble, Unidad, Contrato, Pago, ni generar su recibo PDF. Commits en orden en `feature/seguridad-auditoria`:
 1. Paquetes BCrypt+JwtBearer.
 2. Entidad `Usuario`+`AppRoles`+`IUsuarioRepository` (migración `AddUsuarios`).
 3. DTOs `LoginDto`/`LoginResultDto`/`RegistrarUsuarioDto`.
@@ -64,18 +64,16 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 12. IDOR cerrado en Inquilino: `CrearInquilinoDto` ya no recibe `UsuarioId` del cliente, todo el filtrado vive en `InquilinoRepository`. Nota de implementación: este cambio de firma rompió `ReciboService.GenerarReciboPdfAsync` (llamaba a `IInquilinoRepository.GetByIdAsync` sin `usuarioId`) — se le agregó el parámetro `usuarioId` ahí mismo como fix de compilación mínimo; el cierre completo del IDOR de recibos (Pago/Contrato) es la Task 16.
 13. IDOR cerrado en Inmueble, mismo patrón.
 14. `Unidad` ganó su propio `IUnidadRepository`/`UnidadService` (ya no usa `AppDbContext` directo en el controller — cerraba el anti-patrón de `errores-conocidos.md`), `UsuarioId` propio, y `CrearAsync` valida que el `InmuebleId` del dto pertenezca al usuario autenticado (si no, `400`). Migración `AddUsuarioIdToUnidad` (con `defaultValue: 0` + remapeo en el seed vía `Include(u => u.Inmueble)`).
+15. IDOR cerrado en Contrato: `ContratoService` valida que `InquilinoId`/`UnidadId` del dto pertenezcan al usuario (vía los repos ya filtrados de Inquilino/Unidad) antes de crear/actualizar. Migración `AddUsuarioIdToContrato`.
+16. IDOR cerrado en Pago + recibo PDF: `PagoService` valida `ContratoId`; `ReciboService.GenerarReciboPdfAsync(pagoId, usuarioId, formato)` ahora filtra los 3 repos que consulta (Pago/Contrato/Inquilino) — un usuario sin acceso al pago recibe `404` al pedir el recibo. Migración `AddUsuarioIdToPago`.
 
-22 tests verdes en total. Verificación manual end-to-end repetida en cada task: usuario `otro` (`Propietario`, registrado vía `/api/auth/registrar`) ve listas vacías y `404`/`400` al intentar leer o crear sobre datos del admin (`duenotest`).
+25 tests verdes en total. Esto cierra el hallazgo 🔴 #1 de la sección "Pendiente" de este archivo (filtrar por `UsuarioId`) — falta solo actualizar esa sección al terminar todo el plan (Task 20).
 
 Commit del `UserSecretsId` en el `.csproj` (necesario para que `dotnet user-secrets` funcione) también hecho (`ff0157c`).
 
 **Pendiente de hacer en cada checkpoint (pedido explícito del usuario):** reescribir esta sección tras cada checkpoint de tasks completadas, no solo al final.
 
-**Detalle exacto de lo que falta por task (15-20), para retomar sin releer el plan completo:**
-
-- **Task 15 — IDOR en Contrato.** Modify `Contrato.cs`: agregar `UsuarioId`. Modify `IOtherRepositories.cs`/`OtherRepositories.cs` (`ContratoRepository`): filtrado. Modify `IOtherServices.cs`/`OtherServices.cs` (`ContratoService`): constructor gana `IInquilinoRepository`+`IUnidadRepository` para validar que `InquilinoId`/`UnidadId` del dto pertenezcan al `usuarioId`; `CrearAsync`/`UpdateAsync` devuelven `null`/`false` si no. Modify `OtherControllers.cs` (`ContratosController`): `User.ObtenerUsuarioId()` + manejar `null`/`false` con `BadRequest`/`NotFound`. Migración `AddUsuarioIdToContrato`. Extender seed: `Contrato.UsuarioId = Inquilino.UsuarioId` de su padre. Modify `OtherServiceTests.cs` (`ContratoServiceTests`).
-
-- **Task 16 — IDOR en Pago + recibo PDF.** Modify `Pago.cs`: agregar `UsuarioId`. Modify `IOtherRepositories.cs`/`OtherRepositories.cs` (`PagoRepository`): filtrado. Modify `IOtherServices.cs`/`OtherServices.cs` (`PagoService`): constructor gana `IContratoRepository` para validar `ContratoId`. Modify `ReciboService.cs`: `IReciboService.GenerarReciboPdfAsync` gana parámetro `usuarioId`, lo pasa a los 3 repos que consulta (Pago/Contrato/Inquilino). Modify `OtherControllers.cs` (`PagosController`, incluye `GetRecibo`): `User.ObtenerUsuarioId()`. Migración `AddUsuarioIdToPago`. Extender seed: `Pago.UsuarioId = Contrato.UsuarioId` de su padre. Modify `OtherServiceTests.cs` (`PagoServiceTests`). Verificación manual end-to-end: 2do usuario no ve datos del admin.
+**Detalle exacto de lo que falta por task (17-20), para retomar sin releer el plan completo:**
 
 - **Task 17 — Validación cédula/RUC.** Create `RentaFacil.Shared/Validaciones/IdentificacionEcuatorianaAttribute.cs`: 10 dígitos = cédula (módulo 10, provincia 1-24, tercer dígito 0-5); 13 dígitos = RUC (natural 0-5 mismo módulo 10 + sufijo≠`000`, o sociedad dígito `9` módulo 11 + sufijo≠`000`); todo lo demás inválido. Modify `InquilinoDto.cs`: `[property: IdentificacionEcuatoriana]` en `CrearInquilinoDto.Identificacion`. Create `RentaFacil.Tests/IdentificacionEcuatorianaAttributeTests.cs`: vectores ya derivados a mano — válidos `"1712345675"` (cédula), `"1712345675001"` (RUC natural), `"1791234561001"` (RUC sociedad); inválidos: checksum incorrecto, provincia `00`, tercer dígito `6`, sufijo `000`, letra, longitud rara, vacío.
 
