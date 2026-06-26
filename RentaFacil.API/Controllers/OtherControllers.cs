@@ -60,51 +60,36 @@ public class PagosController : ControllerBase
 [Route("api/[controller]")]
 public class UnidadesController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    public UnidadesController(AppDbContext context) => _context = context;
+    private readonly IUnidadService _service;
+    public UnidadesController(IUnidadService service) => _service = service;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var unidades = await _context.Unidades.ToListAsync();
-        var dtos = unidades.Select(u => new UnidadDto(u.Id, u.Nombre, u.MontoRenta, u.Ocupada, u.InmuebleId));
-        return Ok(dtos);
+        var unidades = await _service.GetAllAsync(User.ObtenerUsuarioId());
+        return Ok(unidades);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CrearUnidadDto dto)
     {
-        var unidad = new Unidad
-        {
-            Nombre = dto.Nombre,
-            MontoRenta = dto.MontoRenta,
-            InmuebleId = dto.InmuebleId,
-            Ocupada = false
-        };
-        _context.Unidades.Add(unidad);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetAll), new { id = unidad.Id }, new UnidadDto(unidad.Id, unidad.Nombre, unidad.MontoRenta, unidad.Ocupada, unidad.InmuebleId));
+        var result = await _service.CrearAsync(dto, User.ObtenerUsuarioId());
+        if (result == null) return BadRequest(new { message = "El inmueble indicado no existe o no te pertenece." });
+        return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] CrearUnidadDto dto)
     {
-        var unidad = await _context.Unidades.FindAsync(id);
-        if (unidad == null) return NotFound();
-        unidad.Nombre = dto.Nombre;
-        unidad.MontoRenta = dto.MontoRenta;
-        unidad.InmuebleId = dto.InmuebleId;
-        await _context.SaveChangesAsync();
+        var actualizado = await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
+        if (!actualizado) return NotFound();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var unidad = await _context.Unidades.FindAsync(id);
-        if (unidad == null) return NotFound();
-        _context.Unidades.Remove(unidad);
-        await _context.SaveChangesAsync();
+        await _service.DeleteAsync(id, User.ObtenerUsuarioId());
         return NoContent();
     }
 }

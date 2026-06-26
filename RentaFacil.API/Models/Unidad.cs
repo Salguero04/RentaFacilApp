@@ -17,6 +17,8 @@ public class Unidad : IAuditable
 
     public Inmueble Inmueble { get; set; } = null!;
 
+    public int UsuarioId { get; set; }
+
     public int? CreadoPorId { get; set; }
     public DateTime? FechaCreacion { get; set; }
     public int? ModificadoPorId { get; set; }

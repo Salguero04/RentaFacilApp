@@ -28,6 +28,8 @@ builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInquilinoRepo
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IInquilinoService, RentaFacil.API.Services.InquilinoService>();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInmuebleRepository, RentaFacil.API.Repositories.InmuebleRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IInmuebleService, RentaFacil.API.Services.InmuebleService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IUnidadRepository, RentaFacil.API.Repositories.UnidadRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IUnidadService, RentaFacil.API.Services.UnidadService>();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IContratoRepository, RentaFacil.API.Repositories.ContratoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IContratoService, RentaFacil.API.Services.ContratoService>();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPagoRepository, RentaFacil.API.Repositories.PagoRepository>();
@@ -149,6 +151,8 @@ using (var scope = app.Services.CreateScope())
         foreach (var inquilino in context.Inquilinos) inquilino.UsuarioId = admin.Id;
         foreach (var inmueble in context.Inmuebles) inmueble.UsuarioId = admin.Id;
         context.SaveChanges();
+        foreach (var unidad in context.Unidades.Include(u => u.Inmueble)) unidad.UsuarioId = unidad.Inmueble.UsuarioId;
+        context.SaveChanges();
 
         if (!context.Inquilinos.Any())
         {
@@ -160,7 +164,7 @@ using (var scope = app.Services.CreateScope())
             context.Inmuebles.Add(inm);
             context.SaveChanges();
 
-            var uni = new RentaFacil.API.Models.Unidad { Nombre = "Apt 1A", MontoRenta = 500, Ocupada = true, InmuebleId = inm.Id };
+            var uni = new RentaFacil.API.Models.Unidad { Nombre = "Apt 1A", MontoRenta = 500, Ocupada = true, InmuebleId = inm.Id, UsuarioId = admin.Id };
             context.Unidades.Add(uni);
             context.SaveChanges();
 
