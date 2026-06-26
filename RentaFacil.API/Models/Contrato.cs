@@ -3,7 +3,7 @@ using RentaFacil.Shared.Enums;
 
 namespace RentaFacil.API.Models;
 
-public class Contrato
+public class Contrato : IAuditable
 {
     public int Id { get; set; }
 
@@ -35,4 +35,9 @@ public class Contrato
     public Inquilino Inquilino { get; set; } = null!;
     
     public Unidad Unidad { get; set; } = null!;
+
+    public int? CreadoPorId { get; set; }
+    public DateTime? FechaCreacion { get; set; }
+    public int? ModificadoPorId { get; set; }
+    public DateTime? FechaModificacion { get; set; }
 }

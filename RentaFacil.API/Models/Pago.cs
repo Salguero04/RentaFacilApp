@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RentaFacil.API.Models;
 
-public class Pago
+public class Pago : IAuditable
 {
     public int Id { get; set; }
 
@@ -24,4 +24,9 @@ public class Pago
     public bool Completado { get; set; }
 
     public Contrato Contrato { get; set; } = null!;
+
+    public int? CreadoPorId { get; set; }
+    public DateTime? FechaCreacion { get; set; }
+    public int? ModificadoPorId { get; set; }
+    public DateTime? FechaModificacion { get; set; }
 }

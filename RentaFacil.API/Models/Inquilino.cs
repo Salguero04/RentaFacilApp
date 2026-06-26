@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RentaFacil.API.Models;
 
-public class Inquilino
+public class Inquilino : IAuditable
 {
     public int Id { get; set; }
 
@@ -23,4 +23,9 @@ public class Inquilino
     public int UsuarioId { get; set; }
 
     public ICollection<Contrato> Contratos { get; set; } = new List<Contrato>();
+
+    public int? CreadoPorId { get; set; }
+    public DateTime? FechaCreacion { get; set; }
+    public int? ModificadoPorId { get; set; }
+    public DateTime? FechaModificacion { get; set; }
 }

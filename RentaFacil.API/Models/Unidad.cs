@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RentaFacil.API.Models;
 
-public class Unidad
+public class Unidad : IAuditable
 {
     public int Id { get; set; }
 
@@ -16,4 +16,9 @@ public class Unidad
     public int InmuebleId { get; set; }
 
     public Inmueble Inmueble { get; set; } = null!;
+
+    public int? CreadoPorId { get; set; }
+    public DateTime? FechaCreacion { get; set; }
+    public int? ModificadoPorId { get; set; }
+    public DateTime? FechaModificacion { get; set; }
 }

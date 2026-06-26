@@ -3,7 +3,7 @@ using RentaFacil.Shared.Enums;
 
 namespace RentaFacil.API.Models;
 
-public class Inmueble
+public class Inmueble : IAuditable
 {
     public int Id { get; set; }
 
@@ -20,4 +20,9 @@ public class Inmueble
     public int UsuarioId { get; set; }
 
     public ICollection<Unidad> Unidades { get; set; } = new List<Unidad>();
+
+    public int? CreadoPorId { get; set; }
+    public DateTime? FechaCreacion { get; set; }
+    public int? ModificadoPorId { get; set; }
+    public DateTime? FechaModificacion { get; set; }
 }
