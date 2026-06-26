@@ -1,43 +1,71 @@
+using System.Net.Http.Json;
 using Microsoft.Maui.Storage;
+using RentaFacil.MAUI.Config;
+using RentaFacil.Shared.Models;
 
 namespace RentaFacil.MAUI.Services;
 
 public class AuthService
 {
-    private const string AuthKey = "is_logged_in";
+    private const string TokenKey = "auth_token";
+    private const string RolKey = "auth_rol";
+    private readonly HttpClient _http;
 
-    public bool IsAuthenticated => Preferences.Get(AuthKey, false);
+    public bool IsAuthenticated { get; private set; }
+    public string? Rol { get; private set; }
 
     public event Action? OnAuthStateChanged;
 
-    public bool Login(string username, string password)
+    public AuthService()
     {
-        // Simple hardcoded user for now as requested
-        if ((username == "admin" && password == "admin") || 
-            (Preferences.Get("user_" + username, "") == password))
+#if DEBUG
+        var handler = new HttpClientHandler
         {
-            Preferences.Set(AuthKey, true);
+            ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+        };
+        _http = new HttpClient(handler) { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(5) };
+#else
+        _http = new HttpClient { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(5) };
+#endif
+    }
+
+    public async Task InicializarAsync()
+    {
+        var token = await SecureStorage.GetAsync(TokenKey);
+        IsAuthenticated = !string.IsNullOrEmpty(token);
+        Rol = await SecureStorage.GetAsync(RolKey);
+    }
+
+    public async Task<bool> LoginAsync(string nombreUsuario, string password)
+    {
+        try
+        {
+            var respuesta = await _http.PostAsJsonAsync("api/auth/login", new LoginDto(nombreUsuario, password));
+            if (!respuesta.IsSuccessStatusCode) return false;
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<LoginResultDto>();
+            if (resultado == null) return false;
+
+            SecureStorage.SetAsync(TokenKey, resultado.Token).Wait();
+            SecureStorage.SetAsync(RolKey, resultado.Rol).Wait();
+            IsAuthenticated = true;
+            Rol = resultado.Rol;
             OnAuthStateChanged?.Invoke();
             return true;
         }
-        return false;
-    }
-
-    public void Register(string username, string password)
-    {
-        Preferences.Set("user_" + username, password);
-    }
-
-    public string? GetPassword(string username)
-    {
-        if (username == "admin") return "admin";
-        var pass = Preferences.Get("user_" + username, (string?)null);
-        return string.IsNullOrEmpty(pass) ? null : pass;
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en login: {ex.Message}");
+            return false;
+        }
     }
 
     public void Logout()
     {
-        Preferences.Set(AuthKey, false);
+        SecureStorage.Remove(TokenKey);
+        SecureStorage.Remove(RolKey);
+        IsAuthenticated = false;
+        Rol = null;
         OnAuthStateChanged?.Invoke();
     }
 }

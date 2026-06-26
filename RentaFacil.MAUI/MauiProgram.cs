@@ -24,27 +24,25 @@ public static class MauiProgram
 
 		// API Client Configuration usando ApiConfig centralizado
 		var apiBaseUrl = RentaFacil.MAUI.Config.ApiConfig.BaseUrl;
-		
+
+		builder.Services.AddSingleton<AuthService>();
+
 #if DEBUG
-		var handler = new HttpClientHandler
+		var innerHandler = new HttpClientHandler
 		{
 			ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
 		};
-		builder.Services.AddScoped(sp => new HttpClient(handler) 
-		{ 
-			BaseAddress = new Uri(apiBaseUrl),
-			Timeout = TimeSpan.FromSeconds(5)
-		});
 #else
-		builder.Services.AddScoped(sp => new HttpClient 
-		{ 
-			BaseAddress = new Uri(apiBaseUrl),
-			Timeout = TimeSpan.FromSeconds(5)
-		});
+		var innerHandler = new HttpClientHandler();
 #endif
 
+		builder.Services.AddScoped(sp => new HttpClient(new AuthHeaderHandler(sp.GetRequiredService<AuthService>(), innerHandler))
+		{
+			BaseAddress = new Uri(apiBaseUrl),
+			Timeout = TimeSpan.FromSeconds(5)
+		});
+
 		builder.Services.AddScoped<ApiClient>();
-		builder.Services.AddSingleton<AuthService>();
 
 		return builder.Build();
 	}
