@@ -4,8 +4,7 @@ public record CrearInquilinoDto(
     string NombreCompleto,
     string Identificacion,
     string? Telefono,
-    string? FotoUrl,
-    int UsuarioId
+    string? FotoUrl
 );
 
 public record InquilinoDto(

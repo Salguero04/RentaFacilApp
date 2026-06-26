@@ -93,7 +93,7 @@
 
     private async Task Guardar()
     {
-        var dto = new CrearInquilinoDto(nombreCompleto, identificacion, telefono, null, 1);
+        var dto = new CrearInquilinoDto(nombreCompleto, identificacion, telefono, null);
         try
         {
             if (Id.HasValue)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentaFacil.API.Data;
+using RentaFacil.API.Extensions;
 using RentaFacil.API.Models;
 using RentaFacil.API.Services.Interfaces;
 using RentaFacil.Shared.Models;
@@ -45,7 +46,7 @@ public class PagosController : ControllerBase
     {
         try
         {
-            var pdfBytes = await _reciboService.GenerarReciboPdfAsync(id, formato);
+            var pdfBytes = await _reciboService.GenerarReciboPdfAsync(id, User.ObtenerUsuarioId(), formato);
             return File(pdfBytes, "application/pdf", $"Recibo_Pago_{id}.pdf");
         }
         catch (Exception ex)

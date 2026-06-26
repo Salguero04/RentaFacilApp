@@ -14,14 +14,14 @@ public class InquilinoRepository : IInquilinoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Inquilino>> GetAllAsync()
+    public async Task<IEnumerable<Inquilino>> GetAllAsync(int usuarioId)
     {
-        return await _context.Inquilinos.ToListAsync();
+        return await _context.Inquilinos.Where(i => i.UsuarioId == usuarioId).ToListAsync();
     }
 
-    public async Task<Inquilino?> GetByIdAsync(int id)
+    public async Task<Inquilino?> GetByIdAsync(int id, int usuarioId)
     {
-        return await _context.Inquilinos.FirstOrDefaultAsync(i => i.Id == id);
+        return await _context.Inquilinos.FirstOrDefaultAsync(i => i.Id == id && i.UsuarioId == usuarioId);
     }
 
     public async Task<Inquilino> AddAsync(Inquilino inquilino)
@@ -37,9 +37,9 @@ public class InquilinoRepository : IInquilinoRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        var inquilino = await _context.Inquilinos.FindAsync(id);
+        var inquilino = await _context.Inquilinos.FirstOrDefaultAsync(i => i.Id == id && i.UsuarioId == usuarioId);
         if (inquilino != null)
         {
             _context.Inquilinos.Remove(inquilino);

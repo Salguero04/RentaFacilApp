@@ -8,7 +8,7 @@ namespace RentaFacil.API.Services.Interfaces
 {
     public interface IReciboService
     {
-        Task<byte[]> GenerarReciboPdfAsync(int pagoId, string formato = "carta");
+        Task<byte[]> GenerarReciboPdfAsync(int pagoId, int usuarioId, string formato = "carta");
     }
 }
 
@@ -27,7 +27,7 @@ namespace RentaFacil.API.Services
             _inquilinoRepository = inquilinoRepository;
         }
 
-        public async Task<byte[]> GenerarReciboPdfAsync(int pagoId, string formato = "carta")
+        public async Task<byte[]> GenerarReciboPdfAsync(int pagoId, int usuarioId, string formato = "carta")
         {
             var pago = await _pagoRepository.GetByIdAsync(pagoId);
             if (pago == null) throw new Exception("Pago no encontrado");
@@ -35,7 +35,7 @@ namespace RentaFacil.API.Services
             var contrato = await _contratoRepository.GetByIdAsync(pago.ContratoId);
             if (contrato == null) throw new Exception("Contrato no encontrado");
 
-            var inquilino = await _inquilinoRepository.GetByIdAsync(contrato.InquilinoId);
+            var inquilino = await _inquilinoRepository.GetByIdAsync(contrato.InquilinoId, usuarioId);
             if (inquilino == null) throw new Exception("Inquilino no encontrado");
 
             var document = Document.Create(container =>

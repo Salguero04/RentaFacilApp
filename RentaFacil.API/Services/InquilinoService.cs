@@ -14,19 +14,19 @@ public class InquilinoService : IInquilinoService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<InquilinoDto>> GetAllAsync()
+    public async Task<IEnumerable<InquilinoDto>> GetAllAsync(int usuarioId)
     {
-        var inquilinos = await _repository.GetAllAsync();
+        var inquilinos = await _repository.GetAllAsync(usuarioId);
         return inquilinos.Select(MapToDto);
     }
 
-    public async Task<InquilinoDto?> GetByIdAsync(int id)
+    public async Task<InquilinoDto?> GetByIdAsync(int id, int usuarioId)
     {
-        var inquilino = await _repository.GetByIdAsync(id);
+        var inquilino = await _repository.GetByIdAsync(id, usuarioId);
         return inquilino != null ? MapToDto(inquilino) : null;
     }
 
-    public async Task<InquilinoDto> CrearAsync(CrearInquilinoDto dto)
+    public async Task<InquilinoDto> CrearAsync(CrearInquilinoDto dto, int usuarioId)
     {
         var inquilino = new Inquilino
         {
@@ -34,7 +34,7 @@ public class InquilinoService : IInquilinoService
             Identificacion = dto.Identificacion,
             Telefono = dto.Telefono,
             FotoUrl = dto.FotoUrl,
-            UsuarioId = dto.UsuarioId,
+            UsuarioId = usuarioId,
             FechaRegistro = DateTime.UtcNow
         };
 
@@ -42,23 +42,22 @@ public class InquilinoService : IInquilinoService
         return MapToDto(created);
     }
 
-    public async Task UpdateAsync(int id, CrearInquilinoDto dto)
+    public async Task UpdateAsync(int id, CrearInquilinoDto dto, int usuarioId)
     {
-        var inquilino = await _repository.GetByIdAsync(id);
+        var inquilino = await _repository.GetByIdAsync(id, usuarioId);
         if (inquilino != null)
         {
             inquilino.NombreCompleto = dto.NombreCompleto;
             inquilino.Identificacion = dto.Identificacion;
             inquilino.Telefono = dto.Telefono;
             inquilino.FotoUrl = dto.FotoUrl;
-            inquilino.UsuarioId = dto.UsuarioId;
             await _repository.UpdateAsync(inquilino);
         }
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        await _repository.DeleteAsync(id);
+        await _repository.DeleteAsync(id, usuarioId);
     }
 
     private static InquilinoDto MapToDto(Inquilino i)
