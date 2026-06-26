@@ -63,9 +63,10 @@
         Auth.OnAuthStateChanged += StateHasChanged;
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender && !Auth.IsAuthenticated)
+        await Auth.InicializarAsync();
+        if (!Auth.IsAuthenticated)
         {
             Nav.NavigateTo("/login");
         }

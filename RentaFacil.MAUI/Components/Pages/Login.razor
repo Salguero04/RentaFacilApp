@@ -17,131 +17,52 @@
                 @errorMessage
             </div>
         }
-        @if (!string.IsNullOrEmpty(successMessage))
-        {
-            <div class="alert alert-success p-2 text-center" role="alert">
-                @successMessage
-            </div>
-        }
 
-        @if (viewState == "login")
-        {
-            <form @onsubmit="DoLogin">
-                <div class="mb-3">
-                    <label class="form-label text-muted small">Usuario</label>
-                    <input type="text" class="form-control form-control-lg rounded-3" @bind="username" required placeholder="admin" />
-                </div>
-                <div class="mb-4">
-                    <label class="form-label text-muted small">Contraseña</label>
-                    <input type="password" class="form-control form-control-lg rounded-3" @bind="password" required placeholder="***" />
-                </div>
-                <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 shadow-sm mb-3">Iniciar Sesión</button>
-                
-                <div class="d-flex justify-content-between text-muted small">
-                    <a href="javascript:void(0)" @onclick='() => SwitchView("register")' class="text-decoration-none">Crear cuenta</a>
-                    <a href="javascript:void(0)" @onclick='() => SwitchView("recover")' class="text-decoration-none">¿Olvidaste tu clave?</a>
-                </div>
-            </form>
-        }
-        else if (viewState == "register")
-        {
-            <form @onsubmit="DoRegister">
-                <div class="mb-3">
-                    <label class="form-label text-muted small">Nuevo Usuario</label>
-                    <input type="text" class="form-control form-control-lg rounded-3" @bind="username" required />
-                </div>
-                <div class="mb-4">
-                    <label class="form-label text-muted small">Nueva Contraseña</label>
-                    <input type="password" class="form-control form-control-lg rounded-3" @bind="password" required />
-                </div>
-                <button type="submit" class="btn btn-success w-100 btn-lg rounded-3 shadow-sm mb-3">Registrarse</button>
-                
-                <div class="text-center">
-                    <a href="javascript:void(0)" @onclick='() => SwitchView("login")' class="text-decoration-none small">Volver al Login</a>
-                </div>
-            </form>
-        }
-        else if (viewState == "recover")
-        {
-            <form @onsubmit="DoRecover">
-                <div class="mb-4">
-                    <label class="form-label text-muted small">Ingresa tu Usuario</label>
-                    <input type="text" class="form-control form-control-lg rounded-3" @bind="username" required />
-                </div>
-                <button type="submit" class="btn btn-warning w-100 btn-lg rounded-3 shadow-sm mb-3">Mostrar Contraseña</button>
-                
-                <div class="text-center">
-                    <a href="javascript:void(0)" @onclick='() => SwitchView("login")' class="text-decoration-none small">Volver al Login</a>
-                </div>
-            </form>
-        }
+        <form @onsubmit="DoLogin">
+            <div class="mb-3">
+                <label class="form-label text-muted small">Usuario</label>
+                <input type="text" class="form-control form-control-lg rounded-3" @bind="username" required />
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small">Contraseña</label>
+                <input type="password" class="form-control form-control-lg rounded-3" @bind="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 shadow-sm mb-3" disabled="@cargando">
+                @(cargando ? "Verificando..." : "Iniciar Sesión")
+            </button>
+        </form>
     </div>
 </div>
 
 @code {
-    private string viewState = "login"; // login, register, recover
     private string username = "";
     private string password = "";
     private string errorMessage = "";
-    private string successMessage = "";
+    private bool cargando = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await Auth.InicializarAsync();
         if (Auth.IsAuthenticated)
         {
             Nav.NavigateTo("/");
         }
     }
 
-    private void SwitchView(string view)
+    private async Task DoLogin()
     {
-        viewState = view;
         errorMessage = "";
-        successMessage = "";
-        password = "";
-    }
+        cargando = true;
+        var exito = await Auth.LoginAsync(username, password);
+        cargando = false;
 
-    private void DoLogin()
-    {
-        errorMessage = "";
-        if (Auth.Login(username, password))
+        if (exito)
         {
             Nav.NavigateTo("/");
         }
         else
         {
             errorMessage = "Usuario o contraseña incorrectos.";
-        }
-    }
-
-    private void DoRegister()
-    {
-        errorMessage = "";
-        successMessage = "";
-        if (Auth.GetPassword(username) != null)
-        {
-            errorMessage = "El usuario ya existe.";
-            return;
-        }
-
-        Auth.Register(username, password);
-        successMessage = "¡Cuenta creada con éxito! Ahora puedes iniciar sesión.";
-        viewState = "login";
-        password = "";
-    }
-
-    private void DoRecover()
-    {
-        errorMessage = "";
-        successMessage = "";
-        var pass = Auth.GetPassword(username);
-        if (pass == null)
-        {
-            errorMessage = "El usuario no existe.";
-        }
-        else
-        {
-            successMessage = $"Tu contraseña es: {pass}";
         }
     }
 }
