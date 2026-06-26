@@ -18,8 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Configure SQLite DbContext
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=rentafacil.db"));
+builder.Services.AddScoped<RentaFacil.API.Data.AuditoriaInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlite("Data Source=rentafacil.db")
+           .AddInterceptors(sp.GetRequiredService<RentaFacil.API.Data.AuditoriaInterceptor>()));
 
 // Dependency Injection
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInquilinoRepository, RentaFacil.API.Repositories.InquilinoRepository>();
