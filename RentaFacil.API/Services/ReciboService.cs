@@ -29,7 +29,7 @@ namespace RentaFacil.API.Services
 
         public async Task<byte[]> GenerarReciboPdfAsync(int pagoId, int usuarioId, string formato = "carta")
         {
-            var pago = await _pagoRepository.GetByIdAsync(pagoId);
+            var pago = await _pagoRepository.GetByIdAsync(pagoId, usuarioId);
             if (pago == null) throw new Exception("Pago no encontrado");
 
             var contrato = await _contratoRepository.GetByIdAsync(pago.ContratoId, usuarioId);

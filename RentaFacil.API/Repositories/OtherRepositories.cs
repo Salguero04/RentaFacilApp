@@ -39,8 +39,8 @@ public class PagoRepository : IPagoRepository
     private readonly AppDbContext _context;
     public PagoRepository(AppDbContext context) => _context = context;
 
-    public async Task<IEnumerable<Pago>> GetAllAsync() => await _context.Pagos.ToListAsync();
-    public async Task<Pago?> GetByIdAsync(int id) => await _context.Pagos.FirstOrDefaultAsync(i => i.Id == id);
+    public async Task<IEnumerable<Pago>> GetAllAsync(int usuarioId) => await _context.Pagos.Where(p => p.UsuarioId == usuarioId).ToListAsync();
+    public async Task<Pago?> GetByIdAsync(int id, int usuarioId) => await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id && p.UsuarioId == usuarioId);
     public async Task<Pago> AddAsync(Pago pago)
     {
         _context.Pagos.Add(pago);
@@ -52,9 +52,9 @@ public class PagoRepository : IPagoRepository
         _context.Pagos.Update(pago);
         await _context.SaveChangesAsync();
     }
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        var pago = await _context.Pagos.FindAsync(id);
+        var pago = await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id && p.UsuarioId == usuarioId);
         if (pago != null)
         {
             _context.Pagos.Remove(pago);

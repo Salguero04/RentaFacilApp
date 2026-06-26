@@ -72,43 +72,55 @@ public class ContratoService : IContratoService
 public class PagoService : IPagoService
 {
     private readonly IPagoRepository _repository;
-    public PagoService(IPagoRepository repository) => _repository = repository;
+    private readonly IContratoRepository _contratoRepository;
 
-    public async Task<IEnumerable<PagoDto>> GetAllAsync()
+    public PagoService(IPagoRepository repository, IContratoRepository contratoRepository)
     {
-        var pagos = await _repository.GetAllAsync();
+        _repository = repository;
+        _contratoRepository = contratoRepository;
+    }
+
+    public async Task<IEnumerable<PagoDto>> GetAllAsync(int usuarioId)
+    {
+        var pagos = await _repository.GetAllAsync(usuarioId);
         return pagos.Select(MapToDto);
     }
-    public async Task<PagoDto?> GetByIdAsync(int id)
+    public async Task<PagoDto?> GetByIdAsync(int id, int usuarioId)
     {
-        var pago = await _repository.GetByIdAsync(id);
+        var pago = await _repository.GetByIdAsync(id, usuarioId);
         return pago != null ? MapToDto(pago) : null;
     }
-    public async Task<PagoDto> CrearAsync(CrearPagoDto dto)
+    public async Task<PagoDto?> CrearAsync(CrearPagoDto dto, int usuarioId)
     {
+        var contrato = await _contratoRepository.GetByIdAsync(dto.ContratoId, usuarioId);
+        if (contrato == null) return null;
+
         var pago = new Pago
         {
             ContratoId = dto.ContratoId, TotalMonto = dto.TotalMonto,
             ACuenta = dto.ACuenta, Servicios = dto.Servicios,
             FechaPago = dto.FechaPago, Periodo = dto.Periodo,
-            Facturado = false, Completado = dto.ACuenta >= dto.TotalMonto
+            Facturado = false, Completado = dto.ACuenta >= dto.TotalMonto, UsuarioId = usuarioId
         };
         var created = await _repository.AddAsync(pago);
         return MapToDto(created);
     }
-    public async Task UpdateAsync(int id, CrearPagoDto dto)
+    public async Task<bool> UpdateAsync(int id, CrearPagoDto dto, int usuarioId)
     {
-        var pago = await _repository.GetByIdAsync(id);
-        if (pago != null)
-        {
-            pago.ContratoId = dto.ContratoId; pago.TotalMonto = dto.TotalMonto;
-            pago.ACuenta = dto.ACuenta; pago.Servicios = dto.Servicios;
-            pago.FechaPago = dto.FechaPago; pago.Periodo = dto.Periodo;
-            pago.Completado = dto.ACuenta >= dto.TotalMonto;
-            await _repository.UpdateAsync(pago);
-        }
+        var pago = await _repository.GetByIdAsync(id, usuarioId);
+        if (pago == null) return false;
+
+        var contrato = await _contratoRepository.GetByIdAsync(dto.ContratoId, usuarioId);
+        if (contrato == null) return false;
+
+        pago.ContratoId = dto.ContratoId; pago.TotalMonto = dto.TotalMonto;
+        pago.ACuenta = dto.ACuenta; pago.Servicios = dto.Servicios;
+        pago.FechaPago = dto.FechaPago; pago.Periodo = dto.Periodo;
+        pago.Completado = dto.ACuenta >= dto.TotalMonto;
+        await _repository.UpdateAsync(pago);
+        return true;
     }
-    public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
+    public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
 
     private static PagoDto MapToDto(Pago p) => new(p.Id, p.ContratoId, p.TotalMonto, p.ACuenta, p.Servicios, p.FechaPago, p.Periodo, p.Facturado, p.Completado);
 }

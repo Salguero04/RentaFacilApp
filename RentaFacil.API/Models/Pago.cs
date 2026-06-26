@@ -25,6 +25,8 @@ public class Pago : IAuditable
 
     public Contrato Contrato { get; set; } = null!;
 
+    public int UsuarioId { get; set; }
+
     public int? CreadoPorId { get; set; }
     public DateTime? FechaCreacion { get; set; }
     public int? ModificadoPorId { get; set; }

@@ -13,9 +13,9 @@ public interface IContratoRepository
 
 public interface IPagoRepository
 {
-    Task<IEnumerable<Pago>> GetAllAsync();
-    Task<Pago?> GetByIdAsync(int id);
+    Task<IEnumerable<Pago>> GetAllAsync(int usuarioId);
+    Task<Pago?> GetByIdAsync(int id, int usuarioId);
     Task<Pago> AddAsync(Pago pago);
     Task UpdateAsync(Pago pago);
-    Task DeleteAsync(int id);
+    Task DeleteAsync(int id, int usuarioId);
 }

@@ -13,9 +13,9 @@ public interface IContratoService
 
 public interface IPagoService
 {
-    Task<IEnumerable<PagoDto>> GetAllAsync();
-    Task<PagoDto?> GetByIdAsync(int id);
-    Task<PagoDto> CrearAsync(CrearPagoDto dto);
-    Task UpdateAsync(int id, CrearPagoDto dto);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<PagoDto>> GetAllAsync(int usuarioId);
+    Task<PagoDto?> GetByIdAsync(int id, int usuarioId);
+    Task<PagoDto?> CrearAsync(CrearPagoDto dto, int usuarioId);
+    Task<bool> UpdateAsync(int id, CrearPagoDto dto, int usuarioId);
+    Task DeleteAsync(int id, int usuarioId);
 }

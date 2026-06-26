@@ -99,20 +99,37 @@ public class ContratoServiceTests
 public class PagoServiceTests
 {
     private readonly Mock<IPagoRepository> _repositoryMock;
+    private readonly Mock<IContratoRepository> _contratoRepositoryMock;
     private readonly PagoService _service;
 
     public PagoServiceTests()
     {
         _repositoryMock = new Mock<IPagoRepository>();
-        _service = new PagoService(_repositoryMock.Object);
+        _contratoRepositoryMock = new Mock<IContratoRepository>();
+        _service = new PagoService(_repositoryMock.Object, _contratoRepositoryMock.Object);
     }
 
     [Fact]
     public async Task CrearAsync_ShouldCalculateCompletado()
     {
         var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26");
+        _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Contrato { Id = 1, UsuarioId = 1 });
         _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Pago>())).ReturnsAsync(new Pago { Id = 1, TotalMonto = 500, ACuenta = 500, Completado = true, Periodo = "MAY-26" });
-        var result = await _service.CrearAsync(dto);
-        result.Completado.Should().BeTrue();
+
+        var result = await _service.CrearAsync(dto, 1);
+
+        result!.Completado.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CrearAsync_ConContratoDeOtroUsuario_DevuelveNull()
+    {
+        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26");
+        _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync((Contrato?)null);
+
+        var result = await _service.CrearAsync(dto, 99);
+
+        result.Should().BeNull();
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Pago>()), Times.Never);
     }
 }

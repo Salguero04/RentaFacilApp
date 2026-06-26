@@ -155,6 +155,8 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
         foreach (var contrato in context.Contratos.Include(c => c.Inquilino)) contrato.UsuarioId = contrato.Inquilino.UsuarioId;
         context.SaveChanges();
+        foreach (var pago in context.Pagos.Include(p => p.Contrato)) pago.UsuarioId = pago.Contrato.UsuarioId;
+        context.SaveChanges();
 
         if (!context.Inquilinos.Any())
         {
@@ -174,7 +176,7 @@ using (var scope = app.Services.CreateScope())
             context.Contratos.Add(con);
             context.SaveChanges();
 
-            var pag = new RentaFacil.API.Models.Pago { ContratoId = con.Id, TotalMonto = 500, ACuenta = 200, Servicios = 0, FechaPago = DateTime.Now, Periodo = "MAY-26", Facturado = false, Completado = false };
+            var pag = new RentaFacil.API.Models.Pago { ContratoId = con.Id, TotalMonto = 500, ACuenta = 200, Servicios = 0, FechaPago = DateTime.Now, Periodo = "MAY-26", Facturado = false, Completado = false, UsuarioId = admin.Id };
             context.Pagos.Add(pag);
             context.SaveChanges();
         }
