@@ -153,6 +153,8 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
         foreach (var unidad in context.Unidades.Include(u => u.Inmueble)) unidad.UsuarioId = unidad.Inmueble.UsuarioId;
         context.SaveChanges();
+        foreach (var contrato in context.Contratos.Include(c => c.Inquilino)) contrato.UsuarioId = contrato.Inquilino.UsuarioId;
+        context.SaveChanges();
 
         if (!context.Inquilinos.Any())
         {
@@ -168,7 +170,7 @@ using (var scope = app.Services.CreateScope())
             context.Unidades.Add(uni);
             context.SaveChanges();
 
-            var con = new RentaFacil.API.Models.Contrato { InquilinoId = inq.Id, UnidadId = uni.Id, Monto = 500, Garantia = 500, Frecuencia = RentaFacil.Shared.Enums.FrecuenciaPago.Mensual, DuracionMeses = 12, DiaPago = 5, FechaInicio = DateTime.Now, FechaFin = DateTime.Now.AddMonths(12), Activo = true };
+            var con = new RentaFacil.API.Models.Contrato { InquilinoId = inq.Id, UnidadId = uni.Id, Monto = 500, Garantia = 500, Frecuencia = RentaFacil.Shared.Enums.FrecuenciaPago.Mensual, DuracionMeses = 12, DiaPago = 5, FechaInicio = DateTime.Now, FechaFin = DateTime.Now.AddMonths(12), Activo = true, UsuarioId = admin.Id };
             context.Contratos.Add(con);
             context.SaveChanges();
 

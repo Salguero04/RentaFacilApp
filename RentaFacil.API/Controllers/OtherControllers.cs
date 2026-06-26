@@ -15,11 +15,26 @@ public class ContratosController : ControllerBase
     private readonly IContratoService _service;
     public ContratosController(IContratoService service) => _service = service;
 
-    [HttpGet] public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
-    [HttpGet("{id}")] public async Task<IActionResult> GetById(int id) { var res = await _service.GetByIdAsync(id); return res == null ? NotFound() : Ok(res); }
-    [HttpPost] public async Task<IActionResult> Create([FromBody] CrearContratoDto dto) { var res = await _service.CrearAsync(dto); return CreatedAtAction(nameof(GetById), new { id = res.Id }, res); }
-    [HttpPut("{id}")] public async Task<IActionResult> Update(int id, [FromBody] CrearContratoDto dto) { await _service.UpdateAsync(id, dto); return NoContent(); }
-    [HttpDelete("{id}")] public async Task<IActionResult> Delete(int id) { await _service.DeleteAsync(id); return NoContent(); }
+    [HttpGet] public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync(User.ObtenerUsuarioId()));
+    [HttpGet("{id}")] public async Task<IActionResult> GetById(int id) { var res = await _service.GetByIdAsync(id, User.ObtenerUsuarioId()); return res == null ? NotFound() : Ok(res); }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CrearContratoDto dto)
+    {
+        var res = await _service.CrearAsync(dto, User.ObtenerUsuarioId());
+        if (res == null) return BadRequest(new { message = "El inquilino o la unidad indicados no existen o no te pertenecen." });
+        return CreatedAtAction(nameof(GetById), new { id = res.Id }, res);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CrearContratoDto dto)
+    {
+        var actualizado = await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
+        if (!actualizado) return NotFound();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")] public async Task<IActionResult> Delete(int id) { await _service.DeleteAsync(id, User.ObtenerUsuarioId()); return NoContent(); }
 }
 
 [ApiController]

@@ -36,6 +36,8 @@ public class Contrato : IAuditable
     
     public Unidad Unidad { get; set; } = null!;
 
+    public int UsuarioId { get; set; }
+
     public int? CreadoPorId { get; set; }
     public DateTime? FechaCreacion { get; set; }
     public int? ModificadoPorId { get; set; }

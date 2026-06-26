@@ -4,11 +4,11 @@ namespace RentaFacil.API.Services.Interfaces;
 
 public interface IContratoService
 {
-    Task<IEnumerable<ContratoDto>> GetAllAsync();
-    Task<ContratoDto?> GetByIdAsync(int id);
-    Task<ContratoDto> CrearAsync(CrearContratoDto dto);
-    Task UpdateAsync(int id, CrearContratoDto dto);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<ContratoDto>> GetAllAsync(int usuarioId);
+    Task<ContratoDto?> GetByIdAsync(int id, int usuarioId);
+    Task<ContratoDto?> CrearAsync(CrearContratoDto dto, int usuarioId);
+    Task<bool> UpdateAsync(int id, CrearContratoDto dto, int usuarioId);
+    Task DeleteAsync(int id, int usuarioId);
 }
 
 public interface IPagoService

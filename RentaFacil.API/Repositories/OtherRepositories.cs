@@ -10,8 +10,8 @@ public class ContratoRepository : IContratoRepository
     private readonly AppDbContext _context;
     public ContratoRepository(AppDbContext context) => _context = context;
 
-    public async Task<IEnumerable<Contrato>> GetAllAsync() => await _context.Contratos.ToListAsync();
-    public async Task<Contrato?> GetByIdAsync(int id) => await _context.Contratos.FirstOrDefaultAsync(i => i.Id == id);
+    public async Task<IEnumerable<Contrato>> GetAllAsync(int usuarioId) => await _context.Contratos.Where(c => c.UsuarioId == usuarioId).ToListAsync();
+    public async Task<Contrato?> GetByIdAsync(int id, int usuarioId) => await _context.Contratos.FirstOrDefaultAsync(c => c.Id == id && c.UsuarioId == usuarioId);
     public async Task<Contrato> AddAsync(Contrato contrato)
     {
         _context.Contratos.Add(contrato);
@@ -23,9 +23,9 @@ public class ContratoRepository : IContratoRepository
         _context.Contratos.Update(contrato);
         await _context.SaveChangesAsync();
     }
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int usuarioId)
     {
-        var contrato = await _context.Contratos.FindAsync(id);
+        var contrato = await _context.Contratos.FirstOrDefaultAsync(c => c.Id == id && c.UsuarioId == usuarioId);
         if (contrato != null)
         {
             _context.Contratos.Remove(contrato);

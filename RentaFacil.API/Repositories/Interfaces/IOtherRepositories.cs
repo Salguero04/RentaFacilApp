@@ -4,11 +4,11 @@ namespace RentaFacil.API.Repositories.Interfaces;
 
 public interface IContratoRepository
 {
-    Task<IEnumerable<Contrato>> GetAllAsync();
-    Task<Contrato?> GetByIdAsync(int id);
+    Task<IEnumerable<Contrato>> GetAllAsync(int usuarioId);
+    Task<Contrato?> GetByIdAsync(int id, int usuarioId);
     Task<Contrato> AddAsync(Contrato contrato);
     Task UpdateAsync(Contrato contrato);
-    Task DeleteAsync(int id);
+    Task DeleteAsync(int id, int usuarioId);
 }
 
 public interface IPagoRepository

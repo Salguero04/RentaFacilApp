@@ -32,7 +32,7 @@ namespace RentaFacil.API.Services
             var pago = await _pagoRepository.GetByIdAsync(pagoId);
             if (pago == null) throw new Exception("Pago no encontrado");
 
-            var contrato = await _contratoRepository.GetByIdAsync(pago.ContratoId);
+            var contrato = await _contratoRepository.GetByIdAsync(pago.ContratoId, usuarioId);
             if (contrato == null) throw new Exception("Contrato no encontrado");
 
             var inquilino = await _inquilinoRepository.GetByIdAsync(contrato.InquilinoId, usuarioId);

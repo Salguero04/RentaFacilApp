@@ -49,20 +49,50 @@ public class InmuebleServiceTests
 public class ContratoServiceTests
 {
     private readonly Mock<IContratoRepository> _repositoryMock;
+    private readonly Mock<IInquilinoRepository> _inquilinoRepositoryMock;
+    private readonly Mock<IUnidadRepository> _unidadRepositoryMock;
     private readonly ContratoService _service;
 
     public ContratoServiceTests()
     {
         _repositoryMock = new Mock<IContratoRepository>();
-        _service = new ContratoService(_repositoryMock.Object);
+        _inquilinoRepositoryMock = new Mock<IInquilinoRepository>();
+        _unidadRepositoryMock = new Mock<IUnidadRepository>();
+        _service = new ContratoService(_repositoryMock.Object, _inquilinoRepositoryMock.Object, _unidadRepositoryMock.Object);
     }
 
     [Fact]
     public async Task GetAllAsync_ShouldReturnContratos()
     {
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Contrato> { new Contrato { Id = 1, Monto = 500 } });
-        var result = await _service.GetAllAsync();
+        _repositoryMock.Setup(r => r.GetAllAsync(1)).ReturnsAsync(new List<Contrato> { new Contrato { Id = 1, Monto = 500 } });
+        var result = await _service.GetAllAsync(1);
         result.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task CrearAsync_ConInquilinoYUnidadDelMismoUsuario_CreaElContrato()
+    {
+        var dto = new CrearContratoDto(1, 1, 500, 500, 12, 5, DateTime.Now, null);
+        _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 1 });
+        _unidadRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Unidad { Id = 1, UsuarioId = 1 });
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Contrato>())).ReturnsAsync((Contrato c) => c);
+
+        var result = await _service.CrearAsync(dto, 1);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CrearAsync_ConUnidadDeOtroUsuario_DevuelveNull()
+    {
+        var dto = new CrearContratoDto(1, 1, 500, 500, 12, 5, DateTime.Now, null);
+        _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 99 });
+        _unidadRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync((Unidad?)null);
+
+        var result = await _service.CrearAsync(dto, 99);
+
+        result.Should().BeNull();
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Contrato>()), Times.Never);
     }
 }
 
