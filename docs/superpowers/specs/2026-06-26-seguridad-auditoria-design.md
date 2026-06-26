@@ -56,8 +56,8 @@ public static class AppRoles
 
 ### Siembra (reemplaza el seed dummy actual de `Program.cs`)
 - Al migrar, si la tabla `Usuarios` está vacía, se crea **un usuario dueño** con rol `Administrador`. Usuario/contraseña inicial se leen de configuración (User Secrets en desarrollo, variables de entorno en producción) — **nunca hardcodeados** en el código fuente.
-- Los datos dummy existentes (`UsuarioId = 1`) se migran para apuntar al `Id` de ese usuario sembrado.
-- El seed de datos de ejemplo (Inquilino/Inmueble/Unidad/Contrato/Pago dummy) se mantiene igual, pero ahora queda asociado al usuario sembrado en vez de un `UsuarioId` mágico.
+- Los datos dummy existentes (`UsuarioId = 1`) se remapean al `Id` real del usuario sembrado **sin asumir que sea `1`** (el autoincrement de SQLite no lo garantiza): `UPDATE Inquilinos/Inmuebles/... SET UsuarioId = (SELECT Id FROM Usuarios WHERE Rol = 'Administrador' LIMIT 1)`, ejecutado dentro de la misma migración EF Core que crea la tabla `Usuarios` (vía `migrationBuilder.Sql(...)`), no asumido en código C# aparte.
+- El seed de datos de ejemplo (Inquilino/Inmueble/Unidad/Contrato/Pago dummy, en bases nuevas sin datos previos) se mantiene igual, pero asignando `UsuarioId = adminUser.Id` leído del objeto recién insertado en memoria (no un literal `1`).
 
 ### Propagar `UsuarioId` a las 5 entidades
 Hoy solo `Inquilino` e `Inmueble` tienen `UsuarioId`; `Unidad`, `Contrato` y `Pago` no lo tienen (cuelgan de su padre). Se agrega `UsuarioId` (FK a `Usuario`) también a `Unidad`, `Contrato` y `Pago`, sellado automáticamente al crear (tomado del usuario autenticado, no del DTO del cliente).
@@ -77,7 +77,7 @@ Cada método de `Repository` que lista o busca por id (`GetAllAsync`, `GetByIdAs
 ## 3. Cliente MAUI
 
 - `AuthService.cs` deja de validar contra `Preferences`. Pasa a llamar `POST /api/auth/login` vía `ApiClient`, y si es exitoso guarda el JWT en `SecureStorage` (no en `Preferences`, que no está cifrado).
-- `ApiClient.cs` adjunta `Authorization: Bearer <token>` a cada request (vía un `DelegatingHandler` registrado en el `HttpClient` o seteando el header por defecto tras login). Si una respuesta vuelve `401`, limpia la sesión (`SecureStorage`) y redirige a `Login.razor`.
+- `ApiClient.cs` adjunta `Authorization: Bearer <token>` a cada request vía un **`DelegatingHandler`** registrado en el `HttpClient` (no header por defecto): centraliza en un solo lugar tanto la lectura del token desde `SecureStorage` por request (cubre el caso de token ausente) como la detección de `401` para disparar el logout, en vez de duplicar esa lógica en cada llamada de `ApiClient`.
 - `Login.razor` se ajusta para mostrar el error real que devuelva la API (credenciales inválidas) en vez de la validación local actual. `Logout` borra el token de `SecureStorage`.
 
 ## 4. Auditoría de cambios
@@ -86,14 +86,16 @@ Cada método de `Repository` que lista o busca por id (`GetAllAsync`, `GetByIdAs
   ```csharp
   public interface IAuditable
   {
-      long? CreadoPorId { get; set; }
+      int? CreadoPorId { get; set; }
       DateTime? FechaCreacion { get; set; }
-      long? ModificadoPorId { get; set; }
+      int? ModificadoPorId { get; set; }
       DateTime? FechaModificacion { get; set; }
   }
   ```
+  `int?` para coincidir con el tipo real de `Usuario.Id`/`UsuarioId` en todo el proyecto (todas las PK/FK del repo son `int`, no `long`).
   Implementado por `Inquilino`, `Inmueble`, `Unidad`, `Contrato`, `Pago`.
 - **`AuditoriaInterceptor`** (`SaveChangesInterceptor`), registrado vía `.AddInterceptors(...)` en `AddDbContext`. En `EntityState.Added` sella `CreadoPorId`/`FechaCreacion` y `ModificadoPorId`/`FechaModificacion` con el mismo valor; en `EntityState.Modified` solo actualiza `ModificadoPorId`/`FechaModificacion`. El usuario actual se lee del `ClaimsPrincipal` vía `IHttpContextAccessor` (ya que hay auth real, no hace falta confiar en el DTO del cliente).
+- **Caso sin `HttpContext` (seed/migración):** el seed de `Program.cs` corre en un scope al arrancar la app, sin ninguna request HTTP activa — `IHttpContextAccessor.HttpContext` será `null` ahí. El interceptor debe comprobar la nulidad y, si no hay contexto HTTP (o no hay claim `sub`), dejar los campos de auditoría en `null` en vez de lanzar excepción.
 - Auditoría es complementaria al filtro IDOR (sección 1): una cosa es *quién hizo qué* (auditoría), otra es *evitar que alguien lea/edite datos de otro* (IDOR). No se sustituyen.
 - Migración EF Core que agrega las 4 columnas de auditoría a las 5 tablas (además de las columnas `UsuarioId` nuevas en `Unidad`/`Contrato`/`Pago` y la tabla `Usuarios`).
 
@@ -113,6 +115,10 @@ app.Use(async (context, next) =>
 });
 ```
 El CSP se ajusta al único CDN real que usa el cliente (`cdn.jsdelivr.net` para `bootstrap-icons`, visto en `RentaFacil.MAUI/wwwroot/index.html`) — no se copia la lista de CDNs del proyecto hermano CampeonatoATP sin revisar. No depende de `UseHttpsRedirection()`, que sigue comentado a propósito.
+
+**Por qué esto no afecta al cliente MAUI:** estas cabeceras viven en `RentaFacil.API` y solo se adjuntan a las respuestas HTTP de la API. El cliente es **Blazor Hybrid** (no Blazor WASM): `BlazorWebView` renderiza el contenido embebido en `RentaFacil.MAUI/wwwroot/` localmente dentro de la app nativa (carga `_framework/blazor.webview.js`, no `blazor.webassembly.js`) y nunca navega contra la API vía HTTP — `ApiClient` solo hace llamadas JSON. Esta CSP nunca llega al WebView del cliente.
+
+El único HTML real que sirve la API es Swagger UI (solo en `Development`). Como el middleware de CSP se registra **después** del bloque `UseSwagger()/UseSwaggerUI()` existente, y Swagger UI intercepta sus propias rutas sin propagar la ejecución hacia abajo en el pipeline, las respuestas de Swagger UI no deberían recibir esta cabecera. Aun así, **antes de mergear esta sección, verificar manualmente con el navegador en `/swagger` (Development) que no aparezcan errores de CSP en la consola** — es la única superficie HTML real donde podría importar, y es barato de comprobar.
 
 ## 6. Rate limiting en login
 
@@ -140,7 +146,7 @@ builder.Services.AddRateLimiter(options =>
 Siguiendo el patrón existente de `RentaFacil.Tests` (Service con Repository mockeado vía Moq + FluentAssertions):
 - **Auth:** hash/verify de contraseña con BCrypt; generación correcta de claims del JWT (sub, rol).
 - **IDOR cerrado:** por cada Service (`InquilinoService`, `InmuebleService`, `ContratoService`, `PagoService`, `UnidadService` si se crea), test de que un usuario no puede leer/editar/borrar una entidad que pertenece a otro `UsuarioId` (debe devolver `null`/`NotFound`, no la entidad ajena).
-- **Auditoría:** test de que `Added` sella `CreadoPorId`/`FechaCreacion` y que `Modified` solo actualiza `ModificadoPorId`/`FechaModificacion` sin tocar los campos de creación.
+- **Auditoría:** test de que `Added` sella `CreadoPorId`/`FechaCreacion` y que `Modified` solo actualiza `ModificadoPorId`/`FechaModificacion` sin tocar los campos de creación; test de que `AuditoriaInterceptor` **no lanza excepción** cuando `IHttpContextAccessor.HttpContext` es `null` (caso seed/migración) y deja los campos de auditoría en `null` en vez de romper.
 - **Validación de identificación:** casos válidos/inválidos conocidos de cédula (10 dígitos) y RUC (13 dígitos), incluyendo el caso de checksum incorrecto.
 
 ## Fuera de alcance (explícitamente)
