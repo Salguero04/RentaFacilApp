@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RentaFacil.API.Services.Interfaces;
 using RentaFacil.Shared;
 using RentaFacil.Shared.Models;
@@ -15,6 +16,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var resultado = await _service.LoginAsync(dto);
