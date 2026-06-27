@@ -18,9 +18,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Configure SQL Server DbContext
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException(
+var connectionString = builder.Configuration.GetConnectionString("Default");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
         "Falta configurar ConnectionStrings:Default. Ejecuta: dotnet user-secrets set \"ConnectionStrings:Default\" \"Server=...;Database=RentaFacil;Integrated Security=true;TrustServerCertificate=true;\" --project RentaFacil.API");
+}
 
 builder.Services.AddScoped<RentaFacil.API.Data.AuditoriaInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
