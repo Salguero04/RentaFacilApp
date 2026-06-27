@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using RentaFacil.Shared.Enums;
 
 namespace RentaFacil.API.Models;
@@ -11,8 +12,10 @@ public class Contrato : IAuditable
 
     public int UnidadId { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Monto { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Garantia { get; set; }
 
     public FrecuenciaPago Frecuencia { get; set; }

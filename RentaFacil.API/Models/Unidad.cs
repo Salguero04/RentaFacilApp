@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RentaFacil.API.Models;
 
@@ -9,6 +10,7 @@ public class Unidad : IAuditable
     [Required, MaxLength(100)]
     public string Nombre { get; set; } = null!;
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal MontoRenta { get; set; }
 
     public bool Ocupada { get; set; }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RentaFacil.API.Models;
 
@@ -8,10 +9,13 @@ public class Pago : IAuditable
 
     public int ContratoId { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalMonto { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal ACuenta { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
     public decimal Servicios { get; set; }
 
     public DateTime FechaPago { get; set; }
