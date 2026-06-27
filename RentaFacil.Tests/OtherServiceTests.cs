@@ -72,7 +72,7 @@ public class ContratoServiceTests
     [Fact]
     public async Task CrearAsync_ConInquilinoYUnidadDelMismoUsuario_CreaElContrato()
     {
-        var dto = new CrearContratoDto(1, 1, 500, 500, 12, 5, DateTime.Now, null);
+        var dto = new CrearContratoDto(1, 1, 500, 500, FrecuenciaPago.Mensual, 12, 5, DateTime.Now, null);
         _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 1 });
         _unidadRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Unidad { Id = 1, UsuarioId = 1 });
         _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Contrato>())).ReturnsAsync((Contrato c) => c);
@@ -83,9 +83,24 @@ public class ContratoServiceTests
     }
 
     [Fact]
+    public async Task CrearAsync_DebeGuardarLaFrecuenciaIndicada()
+    {
+        var dto = new CrearContratoDto(1, 1, 500, 500, FrecuenciaPago.Quincenal, 12, 5, DateTime.Now, null);
+        _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 1 });
+        _unidadRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Unidad { Id = 1, UsuarioId = 1 });
+        Contrato? guardado = null;
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Contrato>())).ReturnsAsync((Contrato c) => { guardado = c; return c; });
+
+        var result = await _service.CrearAsync(dto, 1);
+
+        result!.Frecuencia.Should().Be(FrecuenciaPago.Quincenal);
+        guardado!.Frecuencia.Should().Be(FrecuenciaPago.Quincenal);
+    }
+
+    [Fact]
     public async Task CrearAsync_ConUnidadDeOtroUsuario_DevuelveNull()
     {
-        var dto = new CrearContratoDto(1, 1, 500, 500, 12, 5, DateTime.Now, null);
+        var dto = new CrearContratoDto(1, 1, 500, 500, FrecuenciaPago.Mensual, 12, 5, DateTime.Now, null);
         _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 99 });
         _unidadRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync((Unidad?)null);
 
@@ -112,7 +127,7 @@ public class PagoServiceTests
     [Fact]
     public async Task CrearAsync_ShouldCalculateCompletado()
     {
-        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26");
+        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26", false);
         _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Contrato { Id = 1, UsuarioId = 1 });
         _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Pago>())).ReturnsAsync(new Pago { Id = 1, TotalMonto = 500, ACuenta = 500, Completado = true, Periodo = "MAY-26" });
 
@@ -124,12 +139,40 @@ public class PagoServiceTests
     [Fact]
     public async Task CrearAsync_ConContratoDeOtroUsuario_DevuelveNull()
     {
-        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26");
+        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26", false);
         _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 99)).ReturnsAsync((Contrato?)null);
 
         var result = await _service.CrearAsync(dto, 99);
 
         result.Should().BeNull();
         _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Pago>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CrearAsync_DebeRespetarElFlagFacturadoDelDto()
+    {
+        var dto = new CrearPagoDto(1, 500, 200, 0, DateTime.Now, "MAY-26", true);
+        _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Contrato { Id = 1, UsuarioId = 1 });
+        Pago? guardado = null;
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Pago>())).ReturnsAsync((Pago p) => { guardado = p; return p; });
+
+        var result = await _service.CrearAsync(dto, 1);
+
+        result!.Facturado.Should().BeTrue();
+        guardado!.Facturado.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_DebeActualizarElFlagFacturado()
+    {
+        var existente = new Pago { Id = 1, ContratoId = 1, UsuarioId = 1, Facturado = false };
+        _repositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(existente);
+        _contratoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Contrato { Id = 1, UsuarioId = 1 });
+        var dto = new CrearPagoDto(1, 500, 500, 0, DateTime.Now, "MAY-26", true);
+
+        var actualizado = await _service.UpdateAsync(1, dto, 1);
+
+        actualizado.Should().BeTrue();
+        existente.Facturado.Should().BeTrue();
     }
 }

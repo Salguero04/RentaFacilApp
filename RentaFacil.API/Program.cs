@@ -58,6 +58,8 @@ builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IContratoRepos
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IContratoService, RentaFacil.API.Services.ContratoService>();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPagoRepository, RentaFacil.API.Repositories.PagoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IPagoService, RentaFacil.API.Services.PagoService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IRecordatorioRepository, RentaFacil.API.Repositories.RecordatorioRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IRecordatorioService, RentaFacil.API.Services.RecordatorioService>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IReciboService, RentaFacil.API.Services.ReciboService>();
 
 builder.Services.AddHttpContextAccessor();

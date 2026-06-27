@@ -21,6 +21,10 @@
     }
     else
     {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
         <EditForm Model="this" OnValidSubmit="Guardar">
             <div class="mb-4 text-center">
                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px;">
@@ -88,6 +92,7 @@
     private TipoInmueble tipo = TipoInmueble.Unico;
     private decimal montoRenta;
     private bool cargando = false;
+    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,7 +112,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cargar inmueble: {ex.Message}");
+                errorMessage = $"Error al cargar inmueble: {ex.Message}";
             }
             finally
             {
@@ -125,6 +130,7 @@
 
     private async Task Guardar()
     {
+        errorMessage = "";
         var dto = new CrearInmuebleDto(nombre, direccion, tipo, montoRenta);
         try
         {
@@ -140,7 +146,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al guardar: {ex.Message}");
+            errorMessage = $"Error al guardar: {ex.Message}";
         }
     }
 

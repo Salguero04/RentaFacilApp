@@ -1,5 +1,5 @@
-@page "/inquilinos/nuevo"
-@page "/inquilinos/editar/{Id:int}"
+@page "/inmuebles/{InmuebleId:int}/unidades/nueva"
+@page "/unidades/editar/{Id:int}"
 @using RentaFacil.Shared.Models
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
@@ -9,14 +9,14 @@
     <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;" @onclick="GoBack">
         <i class="bi bi-arrow-left fs-4"></i>
     </button>
-    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@(Id.HasValue ? "Editar Inquilino" : "Nuevo Inquilino")</h3>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@(Id.HasValue ? "Editar Unidad" : "Nueva Unidad")</h3>
     <div style="width: 2.5rem; height: 2.5rem;"></div>
 </div>
 
 <div class="bg-white rounded-top-4 p-4 shadow-sm" style="min-height: 80vh;">
     @if (cargando)
     {
-        <p class="text-center mt-4"><em>Cargando datos del inquilino...</em></p>
+        <p class="text-center mt-4"><em>Cargando datos de la unidad...</em></p>
     }
     else
     {
@@ -26,32 +26,27 @@
         }
         <EditForm Model="this" OnValidSubmit="Guardar">
             <div class="mb-4 text-center">
-                <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle p-3 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px;">
-                    <i class="bi bi-person-fill fs-2"></i>
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="bi bi-door-closed fs-2"></i>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold text-secondary">Nombre Completo</label>
-                <InputText @bind-Value="nombreCompleto" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: Juan Pérez" required />
+                <label class="form-label fw-bold text-secondary">Nombre de la Unidad</label>
+                <InputText @bind-Value="nombre" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: Dept 101, Local B" required />
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold text-secondary">Identificación (DNI / CI / RUC)</label>
-                <InputText @bind-Value="identificacion" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: 1234567-8" required />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold text-secondary">Número de Teléfono</label>
+                <label class="form-label fw-bold text-secondary">Monto de Renta ($)</label>
                 <div class="input-group input-group-lg shadow-sm">
-                    <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone-fill"></i></span>
-                    <InputText @bind-Value="telefono" class="form-control rounded-end-3" placeholder="Ej: +591 70000000" />
+                    <span class="input-group-text bg-light text-muted">$</span>
+                    <InputNumber @bind-Value="montoRenta" class="form-control rounded-end-3" placeholder="0.00" />
                 </div>
             </div>
 
             <div class="d-flex flex-column gap-2 mt-5">
                 <button type="submit" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow">
-                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Inquilino
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Unidad
                 </button>
                 <button type="button" class="btn btn-light btn-lg rounded-pill py-3 fw-bold border" @onclick="GoBack">
                     Cancelar
@@ -62,13 +57,14 @@
 </div>
 
 @code {
+    [Parameter] public int? InmuebleId { get; set; }
     [Parameter] public int? Id { get; set; }
 
-    private string nombreCompleto = "";
-    private string identificacion = "";
-    private string telefono = "";
+    private string nombre = "";
+    private decimal montoRenta;
     private bool cargando = false;
     private string errorMessage = "";
+    private int inmuebleIdEfectivo;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,49 +73,56 @@
             cargando = true;
             try
             {
-                var inq = await Api.GetInquilinoByIdAsync(Id.Value);
-                if (inq != null)
+                var unidades = await Api.GetUnidadesAsync();
+                var uni = unidades.FirstOrDefault(u => u.Id == Id.Value);
+                if (uni != null)
                 {
-                    nombreCompleto = inq.NombreCompleto;
-                    identificacion = inq.Identificacion;
-                    telefono = inq.Telefono ?? "";
+                    nombre = uni.Nombre;
+                    montoRenta = uni.MontoRenta;
+                    inmuebleIdEfectivo = uni.InmuebleId;
                 }
             }
             catch (Exception ex)
             {
-                errorMessage = $"Error al cargar inquilino: {ex.Message}";
+                errorMessage = $"Error al cargar la unidad: {ex.Message}";
             }
             finally
             {
                 cargando = false;
             }
         }
+        else if (InmuebleId.HasValue)
+        {
+            inmuebleIdEfectivo = InmuebleId.Value;
+        }
     }
 
     private async Task Guardar()
     {
+        if (string.IsNullOrWhiteSpace(nombre)) return;
+
         errorMessage = "";
-        var dto = new CrearInquilinoDto(nombreCompleto, identificacion, telefono, null);
+        var dto = new CrearUnidadDto(nombre, montoRenta, inmuebleIdEfectivo);
         try
         {
             if (Id.HasValue)
             {
-                await Api.UpdateInquilinoAsync(Id.Value, dto);
+                await Api.UpdateUnidadAsync(Id.Value, dto);
             }
             else
             {
-                await Api.CrearInquilinoAsync(dto);
+                await Api.CrearUnidadAsync(dto);
             }
-            Nav.NavigateTo("/inquilinos");
+            Nav.NavigateTo($"/inmuebles/{inmuebleIdEfectivo}/unidades");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al guardar: {ex.Message}";
+            errorMessage = $"Error al guardar la unidad: {ex.Message}";
         }
     }
 
     private void GoBack()
     {
-        Nav.NavigateTo("/inquilinos");
+        Nav.NavigateTo($"/inmuebles/{inmuebleIdEfectivo}/unidades");
     }
 }

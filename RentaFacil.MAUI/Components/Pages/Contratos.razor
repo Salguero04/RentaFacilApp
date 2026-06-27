@@ -20,10 +20,14 @@
     {
         <p class="text-center mt-4"><em>Cargando contratos...</em></p>
     }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger m-3">@errorMessage</div>
+    }
     else
     {
         <div class="text-center mb-4 mt-2">
-            <span class="bg-primary bg-opacity-10 text-primary fw-bold px-4 py-2 rounded-pill">Total: @contratos.Count Activos</span>
+            <span class="bg-primary bg-opacity-10 text-primary fw-bold px-4 py-2 rounded-pill">Total: @contratos.Count Contratos</span>
         </div>
 
         @if (!contratos.Any())
@@ -69,11 +73,22 @@
 @code {
     private List<ContratoDto> contratos = new();
     private bool cargando = true;
+    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        contratos = await Api.GetContratosAsync();
-        cargando = false;
+        try
+        {
+            contratos = await Api.GetContratosAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar contratos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
     }
 
     private void NuevoContrato()

@@ -35,7 +35,7 @@ public class ContratoService : IContratoService
         var contrato = new Contrato
         {
             InquilinoId = dto.InquilinoId, UnidadId = dto.UnidadId,
-            Monto = dto.Monto, Garantia = dto.Garantia,
+            Monto = dto.Monto, Garantia = dto.Garantia, Frecuencia = dto.Frecuencia,
             DuracionMeses = dto.DuracionMeses, DiaPago = dto.DiaPago,
             FechaInicio = dto.FechaInicio, FechaFin = dto.FechaInicio.AddMonths(dto.DuracionMeses),
             Observaciones = dto.Observaciones, Activo = true, UsuarioId = usuarioId
@@ -50,7 +50,7 @@ public class ContratoService : IContratoService
         if (!await PertenecenAlUsuario(dto.InquilinoId, dto.UnidadId, usuarioId)) return false;
 
         contrato.InquilinoId = dto.InquilinoId; contrato.UnidadId = dto.UnidadId;
-        contrato.Monto = dto.Monto; contrato.Garantia = dto.Garantia;
+        contrato.Monto = dto.Monto; contrato.Garantia = dto.Garantia; contrato.Frecuencia = dto.Frecuencia;
         contrato.DuracionMeses = dto.DuracionMeses; contrato.DiaPago = dto.DiaPago;
         contrato.FechaInicio = dto.FechaInicio; contrato.FechaFin = dto.FechaInicio.AddMonths(dto.DuracionMeses);
         contrato.Observaciones = dto.Observaciones;
@@ -66,7 +66,7 @@ public class ContratoService : IContratoService
         return inquilino != null && unidad != null;
     }
 
-    private static ContratoDto MapToDto(Contrato c) => new(c.Id, c.InquilinoId, c.UnidadId, c.Monto, c.Garantia, c.DuracionMeses, c.DiaPago, c.FechaInicio, c.FechaFin, c.Observaciones, c.Activo);
+    private static ContratoDto MapToDto(Contrato c) => new(c.Id, c.InquilinoId, c.UnidadId, c.Monto, c.Garantia, c.Frecuencia, c.DuracionMeses, c.DiaPago, c.FechaInicio, c.FechaFin, c.Observaciones, c.Activo);
 }
 
 public class PagoService : IPagoService
@@ -100,7 +100,7 @@ public class PagoService : IPagoService
             ContratoId = dto.ContratoId, TotalMonto = dto.TotalMonto,
             ACuenta = dto.ACuenta, Servicios = dto.Servicios,
             FechaPago = dto.FechaPago, Periodo = dto.Periodo,
-            Facturado = false, Completado = dto.ACuenta >= dto.TotalMonto, UsuarioId = usuarioId
+            Facturado = dto.Facturado, Completado = dto.ACuenta >= dto.TotalMonto, UsuarioId = usuarioId
         };
         var created = await _repository.AddAsync(pago);
         return MapToDto(created);
@@ -116,6 +116,7 @@ public class PagoService : IPagoService
         pago.ContratoId = dto.ContratoId; pago.TotalMonto = dto.TotalMonto;
         pago.ACuenta = dto.ACuenta; pago.Servicios = dto.Servicios;
         pago.FechaPago = dto.FechaPago; pago.Periodo = dto.Periodo;
+        pago.Facturado = dto.Facturado;
         pago.Completado = dto.ACuenta >= dto.TotalMonto;
         await _repository.UpdateAsync(pago);
         return true;
@@ -123,4 +124,40 @@ public class PagoService : IPagoService
     public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
 
     private static PagoDto MapToDto(Pago p) => new(p.Id, p.ContratoId, p.TotalMonto, p.ACuenta, p.Servicios, p.FechaPago, p.Periodo, p.Facturado, p.Completado);
+}
+
+public class RecordatorioService : IRecordatorioService
+{
+    private readonly IRecordatorioRepository _repository;
+    private readonly IInquilinoRepository _inquilinoRepository;
+
+    public RecordatorioService(IRecordatorioRepository repository, IInquilinoRepository inquilinoRepository)
+    {
+        _repository = repository;
+        _inquilinoRepository = inquilinoRepository;
+    }
+
+    public async Task<IEnumerable<RecordatorioDto>> GetAllAsync(int usuarioId)
+    {
+        var recordatorios = await _repository.GetAllAsync(usuarioId);
+        return recordatorios.Select(MapToDto);
+    }
+
+    public async Task<RecordatorioDto?> CrearAsync(CrearRecordatorioDto dto, int usuarioId)
+    {
+        var inquilino = await _inquilinoRepository.GetByIdAsync(dto.InquilinoId, usuarioId);
+        if (inquilino == null) return null;
+
+        var recordatorio = new Recordatorio
+        {
+            InquilinoId = dto.InquilinoId, ContratoId = dto.ContratoId,
+            Detalle = dto.Detalle, FechaProgramada = dto.FechaProgramada, UsuarioId = usuarioId
+        };
+        var created = await _repository.AddAsync(recordatorio);
+        return MapToDto(created);
+    }
+
+    public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
+
+    private static RecordatorioDto MapToDto(Recordatorio r) => new(r.Id, r.InquilinoId, r.ContratoId, r.Detalle, r.FechaProgramada);
 }

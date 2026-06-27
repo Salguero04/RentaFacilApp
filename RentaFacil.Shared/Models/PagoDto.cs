@@ -6,7 +6,8 @@ public record CrearPagoDto(
     decimal ACuenta,
     decimal Servicios,
     DateTime FechaPago,
-    string Periodo
+    string Periodo,
+    bool Facturado
 );
 
 public record PagoDto(

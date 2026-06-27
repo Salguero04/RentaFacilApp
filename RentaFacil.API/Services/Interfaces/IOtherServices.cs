@@ -19,3 +19,10 @@ public interface IPagoService
     Task<bool> UpdateAsync(int id, CrearPagoDto dto, int usuarioId);
     Task DeleteAsync(int id, int usuarioId);
 }
+
+public interface IRecordatorioService
+{
+    Task<IEnumerable<RecordatorioDto>> GetAllAsync(int usuarioId);
+    Task<RecordatorioDto?> CrearAsync(CrearRecordatorioDto dto, int usuarioId);
+    Task DeleteAsync(int id, int usuarioId);
+}

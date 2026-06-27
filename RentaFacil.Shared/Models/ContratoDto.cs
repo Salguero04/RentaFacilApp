@@ -1,3 +1,5 @@
+using RentaFacil.Shared.Enums;
+
 namespace RentaFacil.Shared.Models;
 
 public record CrearContratoDto(
@@ -5,6 +7,7 @@ public record CrearContratoDto(
     int UnidadId,
     decimal Monto,
     decimal Garantia,
+    FrecuenciaPago Frecuencia,
     int DuracionMeses,
     int DiaPago,
     DateTime FechaInicio,
@@ -17,6 +20,7 @@ public record ContratoDto(
     int UnidadId,
     decimal Monto,
     decimal Garantia,
+    FrecuenciaPago Frecuencia,
     int DuracionMeses,
     int DiaPago,
     DateTime FechaInicio,

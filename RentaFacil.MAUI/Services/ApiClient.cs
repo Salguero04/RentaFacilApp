@@ -80,6 +80,12 @@ public class ApiClient
         return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<PagoDto>() : null;
     }
 
+    public async Task<bool> ActualizarPagoAsync(int id, CrearPagoDto dto)
+    {
+        var response = await _http.PutAsJsonAsync($"api/pagos/{id}", dto);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<List<UnidadDto>> GetUnidadesAsync() => await _http.GetFromJsonAsync<List<UnidadDto>>("api/unidades") ?? new();
 
     public async Task<UnidadDto?> CrearUnidadAsync(CrearUnidadDto dto)
@@ -97,6 +103,20 @@ public class ApiClient
     public async Task<bool> DeleteUnidadAsync(int id)
     {
         var response = await _http.DeleteAsync($"api/unidades/{id}");
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<List<RecordatorioDto>> GetRecordatoriosAsync() => await _http.GetFromJsonAsync<List<RecordatorioDto>>("api/recordatorios") ?? new();
+
+    public async Task<RecordatorioDto?> CrearRecordatorioAsync(CrearRecordatorioDto dto)
+    {
+        var response = await _http.PostAsJsonAsync("api/recordatorios", dto);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<RecordatorioDto>() : null;
+    }
+
+    public async Task<bool> DeleteRecordatorioAsync(int id)
+    {
+        var response = await _http.DeleteAsync($"api/recordatorios/{id}");
         return response.IsSuccessStatusCode;
     }
 }

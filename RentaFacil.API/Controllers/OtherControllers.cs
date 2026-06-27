@@ -88,6 +88,26 @@ public class PagosController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+public class RecordatoriosController : ControllerBase
+{
+    private readonly IRecordatorioService _service;
+    public RecordatoriosController(IRecordatorioService service) => _service = service;
+
+    [HttpGet] public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync(User.ObtenerUsuarioId()));
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CrearRecordatorioDto dto)
+    {
+        var res = await _service.CrearAsync(dto, User.ObtenerUsuarioId());
+        if (res == null) return BadRequest(new { message = "El inquilino indicado no existe o no te pertenece." });
+        return Ok(res);
+    }
+
+    [HttpDelete("{id}")] public async Task<IActionResult> Delete(int id) { await _service.DeleteAsync(id, User.ObtenerUsuarioId()); return NoContent(); }
+}
+
+[ApiController]
+[Route("api/[controller]")]
 public class UnidadesController : ControllerBase
 {
     private readonly IUnidadService _service;

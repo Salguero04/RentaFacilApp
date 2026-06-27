@@ -28,7 +28,9 @@ else
                 <th>Periodo</th>
                 <th>Monto Total</th>
                 <th>A Cuenta</th>
+                <th>Saldo</th>
                 <th>Estado</th>
+                <th>Factura</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -41,7 +43,18 @@ else
                     <td>@p.Periodo</td>
                     <td>@MoneyFormatter.Mostrar(p.TotalMonto)</td>
                     <td>@MoneyFormatter.Mostrar(p.ACuenta)</td>
+                    <td>@MoneyFormatter.Mostrar(Math.Max(0, (p.TotalMonto + p.Servicios) - p.ACuenta))</td>
                     <td>@(p.Completado ? "COMPLETO" : "PENDIENTE")</td>
+                    <td>
+                        @if (p.Facturado)
+                        {
+                            <span class="badge bg-success">Facturado</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Sin Factura</span>
+                        }
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" @onclick='() => DescargarRecibo(p.Id, "ticket")'>
                             <i class="bi bi-receipt"></i> Ticket
@@ -65,7 +78,7 @@ else
 
     private async Task DescargarRecibo(int pagoId, string formato)
     {
-        var url = $"{Api.HttpClient.BaseAddress}api/pagos/{pagoId}/recibo/{formato}";
+        var url = new Uri(Api.HttpClient.BaseAddress!, $"api/pagos/{pagoId}/recibo/{formato}");
         await Microsoft.Maui.ApplicationModel.Launcher.OpenAsync(url);
     }
 }

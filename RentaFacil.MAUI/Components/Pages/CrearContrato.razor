@@ -1,5 +1,6 @@
 @page "/contratos/nuevo"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Enums
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -13,6 +14,11 @@
         <i class="bi bi-person-plus fs-4"></i>
     </button>
 </div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger m-3">@errorMessage</div>
+}
 
 <!-- PARTICIPANTES -->
 <h6 class="text-secondary fw-bold ms-2 mb-2" style="font-size: 0.8rem; letter-spacing: 1px;">PARTICIPANTES</h6>
@@ -67,10 +73,10 @@
         <!-- Frecuencia -->
         <div class="position-relative mb-4">
             <span class="position-absolute top-0 start-0 ms-3 mt-n2 bg-white px-2 small text-muted">Frecuencia de Pago</span>
-            <select class="form-select border-0 shadow-none pt-4 pb-2 fw-bold text-dark fs-6" style="background-color: #f8f9fa; border-radius: 12px;">
-                <option>Mensual</option>
-                <option>Quincenal</option>
-                <option>Anual</option>
+            <select class="form-select border-0 shadow-none pt-4 pb-2 fw-bold text-dark fs-6" style="background-color: #f8f9fa; border-radius: 12px;" @bind="frecuencia">
+                <option value="@FrecuenciaPago.Mensual">Mensual</option>
+                <option value="@FrecuenciaPago.Quincenal">Quincenal</option>
+                <option value="@FrecuenciaPago.Semanal">Semanal</option>
             </select>
         </div>
 
@@ -246,9 +252,11 @@
     private bool mostrarSelectorUnidad = false;
     private bool mostrarExito = false;
 
+    private FrecuenciaPago frecuencia = FrecuenciaPago.Mensual;
     private int duracionMeses = 12;
     private decimal monto;
     private decimal garantia;
+    private string errorMessage = "";
     
     private DateTime _fechaInicio = DateTime.Today;
     private DateTime fechaInicio 
@@ -288,8 +296,8 @@
     private void SeleccionarUnidad(UnidadDto uni)
     {
         unidadSeleccionada = uni;
-        monto = 0; // Por defecto 0
-        garantia = 0; // Por defecto 0
+        monto = uni.MontoRenta; // Autocompletado con la renta de la unidad
+        garantia = 0; // No hay garantía sugerida en UnidadDto
         CerrarSelectores();
     }
 
@@ -297,21 +305,34 @@
     {
         if (inquilinoSeleccionado == null || unidadSeleccionada == null || monto <= 0) return;
 
+        errorMessage = "";
         var dto = new CrearContratoDto(
             InquilinoId: inquilinoSeleccionado.Id,
             UnidadId: unidadSeleccionada.Id,
             Monto: monto,
             Garantia: garantia,
+            Frecuencia: frecuencia,
             DuracionMeses: duracionMeses,
             DiaPago: fechaInicio.Day,
             FechaInicio: fechaInicio,
             Observaciones: observaciones
         );
 
-        var result = await Api.CrearContratoAsync(dto);
-        if (result != null)
+        try
         {
-            mostrarExito = true;
+            var result = await Api.CrearContratoAsync(dto);
+            if (result != null)
+            {
+                mostrarExito = true;
+            }
+            else
+            {
+                errorMessage = "No se pudo registrar el contrato. Verifica el inquilino y la unidad seleccionados.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar el contrato: {ex.Message}";
         }
     }
 

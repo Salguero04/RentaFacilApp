@@ -19,3 +19,10 @@ public interface IPagoRepository
     Task UpdateAsync(Pago pago);
     Task DeleteAsync(int id, int usuarioId);
 }
+
+public interface IRecordatorioRepository
+{
+    Task<IEnumerable<Recordatorio>> GetAllAsync(int usuarioId);
+    Task<Recordatorio> AddAsync(Recordatorio recordatorio);
+    Task DeleteAsync(int id, int usuarioId);
+}

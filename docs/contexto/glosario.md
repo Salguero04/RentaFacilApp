@@ -13,8 +13,9 @@
 - **Completado** → si el `Pago` está cubierto al 100% (`ACuenta >= TotalMonto`).
 - **Frecuencia de pago** → enum `FrecuenciaPago` (`Mensual`, `Quincenal`, `Semanal`), define cada cuánto vence la renta de un Contrato.
 - **Recibo Ticket / Recibo Carta** → los dos formatos de PDF que genera `ReciboService` con QuestPDF: Ticket (80mm, pensado para impresora térmica) y Carta (A4, formato formal). El endpoint es `GET /api/pagos/{id}/recibo/{formato}` con `formato` = `ticket` | `carta` (default `carta`).
-- **Estado de Pagos** → vista (`Pagos.razor`/`DetallePagos.razor`) que muestra, por inquilino y periodo, el estado de cobro con indicadores de color. Semántica de colores prevista (spec de producto): 🔵 azul = fecha de pago próxima; 🟡 amarillo = la fecha de pago es hoy; 🔴 rojo = fecha de pago ya pasó (vencido); barra 🟢 verde = pago `Completado`; badge verde/rojo = factura entregada / sin entregar (`Facturado`). [PENDIENTE: confirmar cuánto de esta semántica de color ya está implementada en las páginas vs. solo planeada.]
+- **Estado de Pagos** → vista principal de la app (`Home.razor`, ruta `/`) que muestra, por inquilino y periodo, el estado de cobro con indicadores de color. Semántica de colores — **ya implementada y verificada** en `Home.razor.GetEstadoColor` (ver "Último Contexto" de `CLAUDE.md`, tarea 2026-06-27): 🔵 azul = fecha de pago próxima; 🟡 amarillo = la fecha de pago es hoy; 🔴 rojo = fecha de pago ya pasó (vencido); barra 🟢 verde = pago `Completado`; badge verde/rojo = factura entregada / sin entregar (`Facturado`). `Pagos.razor` (ruta `/pagos`, sin entrada en el menú) es una vista secundaria en tabla con los mismos indicadores; `DetallePagos.razor` muestra el historial de pagos por contrato.
 - **Ingresos** → vista (`Ingresos.razor`) de reporte mensual por inmueble (alquileres + servicios), con selector de mes/año.
+- **Recordatorio** → nota libre con fecha programada, ligada a un `Inquilino` (y opcionalmente a un `Contrato`), creada desde el bottom-sheet "Recordatorio" de `Home.razor`. Es solo una nota persistida (`GET`/`POST`/`DELETE /api/recordatorios`) — no dispara notificaciones push ni recordatorios automáticos (eso sigue en "Pendiente" de `CLAUDE.md`).
 
 ## Entidades principales (en `RentaFacil.API/Models/`)
 - **Inquilino** → `Id`, `NombreCompleto`, `Identificacion` (DNI/CI/RUC), `Telefono?`, `FotoUrl?`, `FechaRegistro`, `UsuarioId`. Tiene muchos `Contrato`s (borrado restringido: no se puede borrar un Inquilino con contratos).
@@ -22,6 +23,7 @@
 - **Unidad** → `Id`, `Nombre`, `MontoRenta`, `Ocupada`, `InmuebleId` (FK, cascada al borrar el Inmueble).
 - **Contrato** → `Id`, `InquilinoId` (FK, restringido), `UnidadId` (FK, restringido), `Monto`, `Garantia`, `Frecuencia`, `DuracionMeses`, `DiaPago`, `FechaInicio`, `FechaFin`, `Observaciones?`, `Activo`. Tiene muchos `Pago`s (borrado en cascada).
 - **Pago** → `Id`, `ContratoId` (FK, cascada), `TotalMonto`, `ACuenta`, `Servicios`, `FechaPago`, `Periodo`, `Facturado`, `Completado`.
+- **Recordatorio** → `Id`, `InquilinoId` (FK, cascada), `ContratoId?` (sin FK estricta, solo referencia), `Detalle`, `FechaProgramada`, `UsuarioId`.
 
 ## Siglas y nombres internos
 - **DTO** → Data Transfer Object; en este repo siempre un `record` en `RentaFacil.Shared/Models/`, con el patrón `Crear{Entidad}Dto` / `{Entidad}Dto`.

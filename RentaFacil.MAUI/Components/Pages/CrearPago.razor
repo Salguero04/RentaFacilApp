@@ -46,7 +46,7 @@ else
                     </div>
                     <div class="d-flex justify-content-between small text-success">
                         <span>A Cta</span>
-                        <span>0.00</span>
+                        <span>@MoneyFormatter.Mostrar(0)</span>
                     </div>
                     <div class="d-flex justify-content-between small text-danger fw-bold">
                         <span>Saldo</span>
@@ -61,7 +61,7 @@ else
                         <i class="bi bi-calendar-event text-primary me-2"></i>
                         <div class="w-100 d-flex justify-content-between">
                             <small class="fw-bold">F/PAGO:</small>
-                            <small>@estado.Contrato.DiaPago may</small>
+                            <small>@estado.Contrato.DiaPago @(DateTime.Today.ToString("MMM"))</small>
                         </div>
                     </div>
                     <div class="d-flex bg-light rounded p-2 align-items-center">
@@ -190,7 +190,7 @@ else
     {
         if (estado == null) return;
 
-        var dto = new CrearPagoDto(ContratoId, estado.Contrato.Monto, montoAPagar, 0, DateTime.Now, estado.PeriodoActual);
+        var dto = new CrearPagoDto(ContratoId, estado.Contrato.Monto, montoAPagar, 0, DateTime.Now, estado.PeriodoActual, entregarFactura);
         pagoGuardado = await Api.CrearPagoAsync(dto);
         mostrarModalConfirmacion = true;
     }

@@ -23,9 +23,9 @@ public class AuthService
         {
             ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
         };
-        _http = new HttpClient(handler) { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(5) };
+        _http = new HttpClient(handler) { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
 #else
-        _http = new HttpClient { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(5) };
+        _http = new HttpClient { BaseAddress = new Uri(ApiConfig.BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
 #endif
     }
 

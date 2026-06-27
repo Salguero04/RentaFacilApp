@@ -252,12 +252,16 @@ else
             <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="GoToRealizarPago">
                 <i class="bi bi-currency-dollar text-success fs-5 me-2"></i> Realizar pago
             </button>
-            <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="() => showRecordatorio = true">
+            <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="AbrirRecordatorio">
                 <i class="bi bi-bell text-warning fs-5 me-2"></i> Recordatorio
             </button>
-            <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="ToggleFactura">
-                <i class="bi bi-receipt text-info fs-5 me-2"></i> Entregar factura
-            </button>
+            @if (bottomSheetEstado.PagoActual != null)
+            {
+                <!-- Solo se puede marcar Facturado sobre un Pago ya existente (el flag vive en la tabla Pagos) -->
+                <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="ToggleFactura">
+                    <i class="bi bi-receipt text-info fs-5 me-2"></i> Entregar factura
+                </button>
+            }
         </div>
     </div>
 }
@@ -277,7 +281,7 @@ else
             <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="AbrirFormatoRecibo">
                 <i class="bi bi-file-earmark-pdf text-danger fs-5 me-2"></i> Recibo PDF
             </button>
-            <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="() => showRecordatorio = true">
+            <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="AbrirRecordatorio">
                 <i class="bi bi-bell text-warning fs-5 me-2"></i> Recordatorio
             </button>
             <button class="list-group-item list-group-item-action py-3 fw-bold" @onclick="ToggleFactura">
@@ -322,15 +326,19 @@ else
             <i class="bi bi-person-circle fs-1 text-secondary"></i>
             <h5 class="fw-bold mt-2">@bottomSheetEstado.Inquilino.NombreCompleto</h5>
         </div>
+        @if (!string.IsNullOrEmpty(errorRecordatorio))
+        {
+            <div class="alert alert-danger small">@errorRecordatorio</div>
+        }
         <div class="mb-3">
             <label class="form-label fw-bold">Detalle del aviso:</label>
-            <textarea class="form-control" rows="3" placeholder="Escribe tu recordatorio..."></textarea>
+            <textarea class="form-control" rows="3" placeholder="Escribe tu recordatorio..." @bind="recordatorioDetalle"></textarea>
         </div>
         <div class="mb-3">
             <label class="form-label fw-bold">Programación:</label>
-            <input type="datetime-local" class="form-control" />
+            <input type="datetime-local" class="form-control" @bind="recordatorioFecha" />
         </div>
-        <button class="btn btn-primary w-100 fw-bold" @onclick="() => showRecordatorio = false">Guardar Recordatorio</button>
+        <button class="btn btn-primary w-100 fw-bold" @onclick="GuardarRecordatorio">Guardar Recordatorio</button>
     </div>
 }
 
@@ -394,6 +402,9 @@ else
     private bool showFormatoRecibo = false;
     private bool reciboEsTicket = true;
     private bool showRecordatorio = false;
+    private string recordatorioDetalle = "";
+    private DateTime recordatorioFecha = DateTime.Now;
+    private string errorRecordatorio = "";
 
     // Calendario Variables
     private bool mostrarSelectorFecha = false;
@@ -561,11 +572,48 @@ else
         }
     }
 
-    private void ToggleFactura()
+    private void AbrirRecordatorio()
     {
-        if (bottomSheetEstado != null)
+        recordatorioDetalle = "";
+        recordatorioFecha = DateTime.Now;
+        errorRecordatorio = "";
+        showRecordatorio = true;
+    }
+
+    private async Task GuardarRecordatorio()
+    {
+        if (bottomSheetEstado == null || string.IsNullOrWhiteSpace(recordatorioDetalle)) return;
+
+        try
         {
-            bottomSheetEstado.RequiereFactura = !bottomSheetEstado.RequiereFactura;
+            var dto = new CrearRecordatorioDto(bottomSheetEstado.Inquilino.Id, bottomSheetEstado.Contrato.Id, recordatorioDetalle, recordatorioFecha);
+            var creado = await Api.CrearRecordatorioAsync(dto);
+            if (creado == null)
+            {
+                errorRecordatorio = "No se pudo guardar el recordatorio.";
+                return;
+            }
+            showRecordatorio = false;
+            CerrarBottomSheet();
+        }
+        catch (Exception ex)
+        {
+            errorRecordatorio = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private async Task ToggleFactura()
+    {
+        if (bottomSheetEstado?.PagoActual == null) { CerrarBottomSheet(); return; }
+
+        var pago = bottomSheetEstado.PagoActual;
+        var nuevoValor = !bottomSheetEstado.RequiereFactura;
+        var dto = new CrearPagoDto(pago.ContratoId, pago.TotalMonto, pago.ACuenta, pago.Servicios, pago.FechaPago, pago.Periodo, nuevoValor);
+        var exito = await Api.ActualizarPagoAsync(pago.Id, dto);
+        if (exito)
+        {
+            bottomSheetEstado.PagoActual = pago with { Facturado = nuevoValor };
+            bottomSheetEstado.RequiereFactura = nuevoValor;
         }
         CerrarBottomSheet();
     }

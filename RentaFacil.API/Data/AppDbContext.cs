@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Unidad> Unidades { get; set; }
     public DbSet<Contrato> Contratos { get; set; }
     public DbSet<Pago> Pagos { get; set; }
+    public DbSet<Recordatorio> Recordatorios { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -31,6 +32,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Unidad>().ToTable("Unidades", "renta");
         modelBuilder.Entity<Contrato>().ToTable("Contratos", "renta");
         modelBuilder.Entity<Pago>().ToTable("Pagos", "renta");
+        modelBuilder.Entity<Recordatorio>().ToTable("Recordatorios", "renta");
 
         // Índices de UsuarioId en renta.* — SQL Server no indexa FKs ni este
         // campo automáticamente, y el WHERE UsuarioId = X corre en cada request.
@@ -39,6 +41,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Unidad>().HasIndex(u => u.UsuarioId);
         modelBuilder.Entity<Contrato>().HasIndex(c => c.UsuarioId);
         modelBuilder.Entity<Pago>().HasIndex(p => p.UsuarioId);
+        modelBuilder.Entity<Recordatorio>().HasIndex(r => r.UsuarioId);
 
         modelBuilder.Entity<Usuario>()
             .HasIndex(u => u.NombreUsuario)
@@ -55,6 +58,12 @@ public class AppDbContext : DbContext
             .WithOne(c => c.Inquilino)
             .HasForeignKey(c => c.InquilinoId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Inquilino>()
+            .HasMany<Recordatorio>()
+            .WithOne(r => r.Inquilino)
+            .HasForeignKey(r => r.InquilinoId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Contrato>()
             .HasMany(c => c.Pagos)
