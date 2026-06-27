@@ -1,32 +1,55 @@
 # 🏢 RentaFácil App
 
-**Estado del proyecto: 🚧 En desarrollo 🚧**
+**Estado del proyecto: 🚧 En desarrollo (Fase 1 — MVP local) 🚧**
 
-RentaFácil es una plataforma integral multiplataforma diseñada para la gestión eficiente de propiedades en alquiler. Esta aplicación busca simplificar el control de bienes raíces tanto para arrendadores como para administradores, centralizando todas las operaciones en un solo lugar.
+RentaFácil es una plataforma multiplataforma para la gestión de propiedades en alquiler. Centraliza el control de inmuebles, inquilinos, contratos, pagos y la emisión de recibos, tanto para arrendadores como administradores.
 
-## 🎯 Características Principales (En progreso)
+## 🎯 Características
 
-- 🏠 **Gestión de Inmuebles:** Administración de propiedades únicas o edificios con múltiples unidades (departamentos, locales, oficinas).
-- 👥 **Control de Inquilinos:** Base de datos con información detallada de los arrendatarios.
-- 📄 **Contratos Inteligentes:** Registro de contratos con control de vigencias, montos de renta, garantías y frecuencias de pago (mensual, quincenal, semanal).
-- 💰 **Pagos y Cobranzas:** Seguimiento preciso de los pagos realizados, saldos pendientes y servicios extra.
-- 🧾 **Generación de Recibos:** Creación automática de recibos en formato PDF (estilo Ticket y Carta) listos para compartir o imprimir.
+- 🏠 **Gestión de Inmuebles:** propiedades únicas o edificios con múltiples unidades (departamentos, locales, oficinas).
+- 👥 **Control de Inquilinos:** base de datos con la información de los arrendatarios.
+- 📄 **Contratos:** vigencias, montos de renta, garantías y frecuencias de pago (mensual, quincenal, semanal), con cálculo automático de fecha fin.
+- 💰 **Pagos y Cobranzas:** seguimiento de pagos, saldos pendientes y servicios extra.
+- 🧾 **Recibos PDF:** generación automática en formato Ticket (80mm) y Carta (A4) con QuestPDF.
 
-## 💻 Tecnologías Utilizadas
+## 💻 Tecnologías
 
-Este proyecto se basa en una arquitectura limpia dividida en Cliente, Servidor y Recursos Compartidos:
+Arquitectura limpia dividida en Cliente, Servidor y Recursos Compartidos:
 
-- **Frontend (Cliente):** `.NET MAUI Blazor Hybrid` - Ofrece una experiencia nativa en iOS, Android, Mac y Windows, reutilizando componentes web (HTML, CSS, C#).
-- **Backend (Servidor):** `ASP.NET Core Web API` - API robusta y segura para gestionar la lógica de negocio.
-- **Base de Datos:** `Entity Framework Core` con `MySQL` (Producción) / `SQLite` (Desarrollo local).
-- **Reportes:** `QuestPDF` para la generación ágil de documentos.
+- **Frontend (Cliente):** `.NET MAUI Blazor Hybrid` — experiencia nativa en Android, iOS, Windows y macOS reutilizando componentes web (HTML/CSS/C#), más uso web.
+- **Backend (Servidor):** `ASP.NET Core Web API` (.NET 10).
+- **Base de Datos:** `Entity Framework Core` con `SQLite` (desarrollo local) → `MySQL` (producción).
+- **Reportes:** `QuestPDF` para la generación de documentos.
+- **Pruebas:** `xUnit` + `Moq` + `FluentAssertions`.
 
-## 📁 Estructura del Repositorio
+## 📁 Estructura del repositorio
 
-- `RentaFacil.Shared/`: Modelos de datos compartidos (DTOs, Enums).
-- `RentaFacil.API/`: Proyecto Backend y lógica de acceso a datos.
-- `RentaFacil.MAUI/`: Proyecto Frontend (Aplicación móvil/de escritorio).
-- `betas APKs/`: Directorio donde se almacenan las versiones compiladas de prueba (APK) para Android.
+- `RentaFacil.Shared/` — Modelos de datos compartidos (DTOs, Enums).
+- `RentaFacil.API/` — Backend, lógica de negocio y acceso a datos.
+- `RentaFacil.MAUI/` — Frontend (app móvil/escritorio/web).
+- `RentaFacil.Tests/` — Pruebas unitarias.
+- `betas APKs/` — Versiones compiladas de prueba (APK) para Android.
+
+## 📚 Documentación
+
+La documentación técnica del proyecto está organizada para consumo de [Claude Code](https://claude.com/claude-code):
+
+- [`CLAUDE.md`](CLAUDE.md) — índice central: arranque rápido, pendientes y enlaces.
+- [`docs/contexto/`](docs/contexto/) — contexto detallado por eje (arquitectura, convenciones, decisiones, glosario, flujo de trabajo, errores conocidos).
+- [`ClaudeCampeonatoatp.md`](ClaudeCampeonatoatp.md) — referencia de seguridad/auditoría a implementar.
+
+## 🚀 Cómo empezar
+
+```bash
+# Compilar todo
+dotnet build RentaFacil.slnx
+
+# Levantar la API (http://0.0.0.0:5295)
+dotnet run --project RentaFacil.API
+
+# Ejecutar pruebas
+dotnet test RentaFacil.Tests
+```
 
 ---
 *Desarrollado por [Salguero04](https://github.com/Salguero04)*
