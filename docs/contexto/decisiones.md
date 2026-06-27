@@ -8,6 +8,12 @@
 - **Descartado:** **SQLite** (era la BD local de Fase 1, `Data Source=rentafacil.db`) y **MySQL** (era el destino de producción planeado) — ambos reemplazados por SQL Server el 2026-06-26. SQLite ignoraba `decimal(18,2)` y no soporta schemas reales; mantener dos providers (local vs prod) añadía fricción.
 - **Estado:** vigente. Verificado end-to-end en la máquina de trabajo (`GGCBOADMWRK025\SQLEXPRESS`): migración aplicada, schemas/tablas creados, seed y smoke test HTTP OK. Pendiente: aplicar en la máquina de casa (`DESKTOP-07M16LE\LOCALDB`) y definir el hosting de producción.
 
+## `InvariantCulture` en la API + `MoneyFormatter` es-EC + infraestructura `.resx`
+- **Decisión:** la API y MAUI fuerzan `CultureInfo.DefaultThreadCurrentCulture` al arrancar (`InvariantCulture` en la API, `es-EC` en MAUI). Todo formateo de dinero para mostrar al usuario (vistas MAUI + recibos PDF) pasa por `MoneyFormatter.Mostrar()` (`RentaFacil.Shared/Globalization/MoneyFormatter.cs`), nunca `.ToString()`/`"F2"` directo. Se agregó infraestructura `.resx` (`SharedResources.es.resx`/`.en.resx`) para multiidioma futuro, aunque hoy solo español está poblado. Plan: `docs/superpowers/plans/2026-06-26-globalizacion.md`.
+- **Por qué:** los inputs de monto en MAUI (`type="number"`/`InputNumber`) ya eran seguros por diseño de Blazor (parsean en formato invariante sin importar la cultura del dispositivo), pero la *visualización* (`$@valor`, `.ToString("F2")`) sí dependía de la `CurrentCulture` del hilo — un riesgo real si el servidor de producción corre con un locale distinto al de desarrollo, o si el recibo PDF se genera en un hilo con cultura distinta.
+- **Descartado:** migrar los inputs de monto a `type="text"` con parseo manual (lo sugería el borrador inicial del plan) — habría sido una regresión, no una mejora, porque los inputs ya eran culture-safe.
+- **Estado:** vigente. Verificado: 50 tests en verde (incluye `MoneyFormatterTests`), recibo PDF real muestra `$500,00` (coma decimal es-EC), build de API y MAUI Android limpios.
+
 ## `LOCAL` compile constant para la URL de la API en MAUI
 - **Decisión:** `ApiConfig.cs` usa `#if LOCAL` (definido automáticamente en builds Debug vía `DefineConstants` en `RentaFacil.MAUI.csproj`) para elegir entre la IP de loopback del emulador Android (`10.0.2.2:5295`) y una IP fija de LAN/producción en Release.
 - **Por qué:** evitar tener que reconfigurar la URL a mano cada vez que se cambia entre probar en emulador y probar en un dispositivo real/LAN.

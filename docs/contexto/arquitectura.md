@@ -9,6 +9,7 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 - ORM: Entity Framework Core 10
 - Base de datos: SQL Server (local + producción) con 4 schemas organizacionales fijos (`auth`/`renta`/`config`/`audit`) — ver `decisiones.md`. Connection string por máquina vía user-secrets (`ConnectionStrings:Default`). (SQLite y MySQL quedaron descartados.)
 - PDF: QuestPDF (licencia Community) para recibos formato Ticket (80mm) y Carta (A4)
+- Globalización: API y MAUI fuerzan `InvariantCulture`/`es-EC` al arrancar; `MoneyFormatter` (en `RentaFacil.Shared/Globalization/`) centraliza el formato de dinero (es-EC, `$X.XXX,XX`); infraestructura `.resx` lista para multiidioma (solo español poblado hoy) — ver `decisiones.md`.
 - Tests: xUnit + Moq + FluentAssertions (`RentaFacil.Tests`)
 - Servicios externos: ninguno integrado todavía (OAuth de Google, WhatsApp deep link, etc. están planeados pero no implementados — ver la sección "Pendiente" de `CLAUDE.md`)
 
