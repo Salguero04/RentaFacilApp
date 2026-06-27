@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using RentaFacil.API.Data;
@@ -9,28 +8,27 @@ using RentaFacil.API.Models;
 
 namespace RentaFacil.Tests;
 
-public class AuditoriaInterceptorTests : IDisposable
+public class AuditoriaInterceptorTests
 {
-    private readonly SqliteConnection _connection;
+    private readonly string _nombreBd = Guid.NewGuid().ToString();
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
 
     public AuditoriaInterceptorTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
     }
 
     private AppDbContext CrearContexto()
     {
+        // InMemory (no SQL Server real) — basta para probar el interceptor, que
+        // opera sobre el ChangeTracker y es agnóstico del provider. No valida
+        // schemas ni decimal(18,2), eso se verifica end-to-end contra SQL Server.
         var interceptor = new AuditoriaInterceptor(_httpContextAccessorMock.Object);
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseInMemoryDatabase(_nombreBd)
             .AddInterceptors(interceptor)
             .Options;
-        var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
-        return context;
+        return new AppDbContext(options);
     }
 
     private void ConfigurarUsuarioAutenticado(int usuarioId)
@@ -90,6 +88,4 @@ public class AuditoriaInterceptorTests : IDisposable
         inquilino.ModificadoPorId.Should().BeNull();
         inquilino.FechaCreacion.Should().NotBeNull();
     }
-
-    public void Dispose() => _connection.Dispose();
 }
