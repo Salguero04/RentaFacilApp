@@ -25,6 +25,15 @@ Cada eje en su archivo — abre solo el que necesites:
 - **Flujo de trabajo** → @docs/contexto/flujo-de-trabajo.md — pasos para un cambio, checklist de "terminado", y las 3 fases de deploy (Local actual / Render / Oracle Cloud).
 - **Errores conocidos** → @docs/contexto/errores-conocidos.md — `UnidadesController` salta capas, IP de prod hardcodeada, IDOR y login local (ya RESUELTOS), y cosas que parecen rotas pero son a propósito (CORS/HTTPS, seed dummy).
 
+### Regla: verificar `docs/contexto/` al cerrar cualquier tarea
+**Motivo:** ya pasó dos veces — `arquitectura.md` ("Lo que NO existe") y `errores-conocidos.md` seguían describiendo auth/IDOR/auditoría como ausentes mucho después de haberse implementado y mergeado, porque al cerrar esas tareas solo se actualizó `CLAUDE.md` y las secciones "positivas" de esos mismos archivos, nunca las listas de cierre.
+
+Antes de dar por terminada cualquier tarea que resuelva algo descrito como pendiente/ausente/gotcha en estos docs:
+1. `grep` (o búsqueda manual) de palabras clave del problema resuelto en **todos** los `.md` de `docs/contexto/` + `CLAUDE.md` + `ClaudeCampeonatoatp.md` — no asumir que solo vive en el archivo "obvio".
+2. Revisar con especial cuidado las **secciones de cierre/listas negativas**: "Lo que NO existe" en `arquitectura.md` y cada entrada de `errores-conocidos.md` — son las que más se desactualizan porque viven separadas de donde ocurre el cambio real.
+3. Si una entrada queda resuelta, no borrarla en silencio: marcarla **"ya RESUELTO"** con fecha y qué la resolvió (commit/rama/plan), igual que se hizo con `rentafacil.db` y con IDOR/login.
+4. Esto aplica también a "Último Contexto" de este archivo: si dice "la rama no se ha mergeado" y ya se mergeó, corregirlo en el mismo checkpoint que hace el merge — no dejarlo para una pasada posterior.
+
 ## Pendiente
 Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo (con código de referencia del proyecto hermano CampeonatoATP) vive en → @ClaudeCampeonatoatp.md.
 
@@ -43,7 +52,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 > Sección de handoff: dónde quedó el trabajo y cómo continuar. **Reescribir** (no acumular histórico) tras cada cambio mediano/mayor.
 
 **Fecha:** 2026-06-26
-**Plan ejecutado:** `docs/superpowers/plans/2026-06-26-migracion-sqlserver.md` (9 tasks), ejecución inline (no subagentes) en la rama `feature/migracion-sqlserver` (creada desde `main`). **La rama NO se ha mergeado a `main` todavía** — pendiente de decisión del usuario (siguiente paso: `superpowers:finishing-a-development-branch`).
+**Plan ejecutado:** `docs/superpowers/plans/2026-06-26-migracion-sqlserver.md` (9 tasks), ejecución inline (no subagentes) en la rama `feature/migracion-sqlserver` (creada desde `main`). **Mergeada a `main` con fast-forward y pusheada a GitHub** (`c6278ce`); la rama se borró.
 
 **Antecedente (ya en `main`):** el plan de seguridad/auditoría (`docs/superpowers/plans/2026-06-26-seguridad-auditoria.md`, 20 tasks) está completo y mergeado a `main` con fast-forward — autenticación real JWT+BCrypt, IDOR/BOLA cerrado en las 5 entidades + recibo PDF, auditoría automática, cabeceras de seguridad HTTP, rate limiting de login y validación de cédula/RUC. El detalle por commit vive en el git log; los puntos 1-5 de `ClaudeCampeonatoatp.md` quedaron cubiertos.
 
@@ -58,6 +67,6 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 8. `AuditoriaInterceptorTests` migrado de `SqliteConnection(":memory:")` a `UseInMemoryDatabase` (paquete `Microsoft.EntityFrameworkCore.InMemory` agregado a `RentaFacil.Tests`). El interceptor opera sobre el `ChangeTracker`, agnóstico del provider, así que los 3 tests siguen pasando. InMemory NO valida schemas ni `decimal(18,2)` — eso se verifica end-to-end contra SQL Server real.
 9. Verificación final + docs. **Cleanup extra:** `rentafacil.db` (SQLite legacy) se sacó del control de versiones (`git rm --cached`) y `RentaFacil.API/*.db`/`-shm`/`-wal` se agregaron a `.gitignore` — cierra el gotcha de `errores-conocidos.md`. Docs actualizados (CLAUDE.md, `docs/contexto/` arquitectura/decisiones/errores-conocidos/flujo-de-trabajo, README) de SQLite/MySQL → SQL Server.
 
-**Próximo paso sugerido:** invocar `superpowers:finishing-a-development-branch` para mergear/cerrar `feature/migracion-sqlserver` a `main`. **Pendiente del usuario (no automatizable desde aquí):** aplicar la migración en la máquina de casa (`DESKTOP-07M16LE\LOCALDB#9246A1FB`) — configurar su user-secret `ConnectionStrings:Default` y arrancar la API una vez para que el `Migrate()` cree la BD y los schemas allí también.
+**Próximo paso sugerido:** **pendiente del usuario (no automatizable desde aquí):** aplicar la migración en la máquina de casa (`DESKTOP-07M16LE\LOCALDB#9246A1FB`) — configurar su user-secret `ConnectionStrings:Default` y arrancar la API una vez para que el `Migrate()` cree la BD y los schemas allí también. Aparte: se corrigió una inconsistencia en `docs/contexto/arquitectura.md` y `errores-conocidos.md` que seguían describiendo el estado pre-seguridad (sin auth/IDOR/auditoría) aunque ya estaban implementados — ver la nueva regla en "Convenciones de actualización de docs" más abajo.
 
 **Cuidado con procesos huérfanos:** durante esta sesión, `dotnet run` en background dejó el `.dll`/`.exe` bloqueados varias veces. Antes de rebuildear: `netstat -ano | grep 5295` (Bash tool, Git Bash) para hallar el PID en `LISTENING`, luego `taskkill //PID <pid> //F`. Preferir `timeout 20 dotnet run --no-build` en vez de `(dotnet run &)` suelto para que se auto-mate solo.
