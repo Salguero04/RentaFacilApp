@@ -17,10 +17,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Configure SQLite DbContext
+// Configure SQL Server DbContext
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException(
+        "Falta configurar ConnectionStrings:Default. Ejecuta: dotnet user-secrets set \"ConnectionStrings:Default\" \"Server=...;Database=RentaFacil;Integrated Security=true;TrustServerCertificate=true;\" --project RentaFacil.API");
+
 builder.Services.AddScoped<RentaFacil.API.Data.AuditoriaInterceptor>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-    options.UseSqlite("Data Source=rentafacil.db")
+    options.UseSqlServer(connectionString, sqlOpt => sqlOpt.MigrationsHistoryTable("__EFMigrationsHistory", "config"))
            .AddInterceptors(sp.GetRequiredService<RentaFacil.API.Data.AuditoriaInterceptor>()));
 
 // Dependency Injection
