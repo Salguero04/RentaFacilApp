@@ -2,15 +2,13 @@
 
 > Trampas confirmadas leyendo el código real, no suposiciones. Si algo no se pudo confirmar, queda marcado `[PENDIENTE]` en vez de afirmado a ciegas.
 
-## Cualquier usuario puede leer/editar/borrar datos de cualquier otro usuario (IDOR/BOLA)
-- **Pasa cuando:** se llama a cualquier `GetAllAsync`/`GetByIdAsync`/`Update`/`Delete` de Inquilino, Inmueble, Contrato, Pago o Unidad.
-- **Causa real:** todas las entidades tienen `UsuarioId`, pero ningún Repository/Service/Controller lo usa para filtrar — se asigna al crear, pero nunca se valida al leer o modificar. Confirmado leyendo `InquilinoService`, `InmuebleService`, `OtherServices.cs` y sus Controllers.
-- **Solución:** pendiente de implementar — ver la sección "Pendiente" en `CLAUDE.md` y el punto 5 de `ClaudeCampeonatoatp.md` (es la prioridad #1 sugerida).
+## IDOR/BOLA por falta de filtro `UsuarioId` — ya RESUELTO
+- **Era:** ningún Repository/Service/Controller filtraba por `UsuarioId` al leer/editar — cualquier usuario podía ver/modificar datos de otro.
+- **Resuelto (2026-06-26, rama `feature/seguridad-auditoria` mergeada a `main`):** las 5 entidades (Inquilino/Inmueble/Unidad/Contrato/Pago) filtran por `UsuarioId` en cada `GetAllAsync`/`GetByIdAsync`/`Update`/`Delete` a nivel Repository, con índice en SQL Server. Verificado con un segundo usuario real que no ve ningún dato del primero.
 
-## El login de la app no protege nada en el servidor
-- **Pasa cuando:** se asume que por tener `Login.razor`/`AuthService` la API está protegida.
-- **Causa real:** `AuthService.cs` en MAUI valida contra `Preferences` local del dispositivo (usuario hardcodeado `admin/admin`); nunca llama a la API. La API no tiene `[Authorize]` en ningún Controller — cualquiera con la URL puede llamar los endpoints directo (con o sin pasar por el login de la app).
-- **Solución:** pendiente — ver punto 2 de `ClaudeCampeonatoatp.md`.
+## Login que no protege la API — ya RESUELTO
+- **Era:** `AuthService.cs` en MAUI validaba contra `Preferences` local (usuario hardcodeado `admin/admin`) sin llamar a la API; la API no tenía `[Authorize]` en ningún Controller.
+- **Resuelto (2026-06-26):** autenticación real JWT + BCrypt (`AuthController`, `AutenticacionService`), `AddAuthorization` con `FallbackPolicy = RequireAuthenticatedUser()` (todo endpoint requiere token salvo que se marque lo contrario), rate limiting en `/api/auth/login`. El cliente MAUI (`AuthService.cs` + `AuthHeaderHandler`) llama a la API real y adjunta el `Bearer` token.
 
 ## `UnidadesController` rompe el patrón de capas sin avisar
 - **Pasa cuando:** se usa `UnidadesController` (en `OtherControllers.cs`) como referencia para escribir un Controller nuevo.

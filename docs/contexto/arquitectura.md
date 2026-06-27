@@ -50,10 +50,10 @@ Reglas de borrado (definidas en `OnModelCreating`):
 - `UsuarioId` está en las 5 entidades de `renta.*` y **sí** se usa para filtrar cada lectura/escritura en los Repositories (IDOR/BOLA cerrado, indexado) — ver `errores-conocidos.md`.
 
 ## Lo que NO existe (y no hay que crear sin que lo pidan)
-- No hay autenticación de servidor (ni JWT ni ASP.NET Identity) — el login de MAUI es local y no protege la API.
-- No hay filtrado por `UsuarioId` en las consultas — ver `errores-conocidos.md` (es un hallazgo de seguridad, no una decisión).
-- No hay auditoría de cambios (`CreadoPor`/`ModificadoPor`) en las entidades.
 - No hay caché de ningún tipo.
 - No hay Docker en uso real (está en el plan para Fase 2, pero no hay `Dockerfile`/`docker-compose.yml` en el repo).
 - No hay paginación en los `GetAll()` de la API.
 - No hay CI/CD configurado (no hay workflows en `.github/workflows/`).
+- No hay multiusuario real más allá de roles básicos (`Administrador`/`Propietario`) — el registro de cuentas vía `/api/auth/registrar` exige ya estar autenticado, no es self-service público.
+
+(Autenticación JWT, filtrado por `UsuarioId`, y auditoría de cambios — que antes estaban en esta lista — ya están implementados; ver el resto de este documento y `decisiones.md`.)
