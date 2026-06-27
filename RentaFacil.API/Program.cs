@@ -33,8 +33,12 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 // Factory registrado como base para el futuro salto a BD-por-tenant
 // (un TenantDbContextFactory elegiría la connection string según el JWT).
 // Hoy no cambia el comportamiento: usa la misma config de SQL Server.
+// Lifetime Scoped (no el Singleton por defecto) para coexistir con el
+// AddDbContext de arriba, que registra DbContextOptions como Scoped — un
+// factory Singleton no puede consumir esas opciones Scoped.
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlOpt => sqlOpt.MigrationsHistoryTable("__EFMigrationsHistory", "config")));
+    options.UseSqlServer(connectionString, sqlOpt => sqlOpt.MigrationsHistoryTable("__EFMigrationsHistory", "config")),
+    ServiceLifetime.Scoped);
 
 // Dependency Injection
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInquilinoRepository, RentaFacil.API.Repositories.InquilinoRepository>();
