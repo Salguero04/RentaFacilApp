@@ -1,5 +1,6 @@
 @page "/pagos/detalle/{ContratoId:int}"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -36,7 +37,7 @@ else
                     </div>
                 </div>
                 <div class="text-end">
-                    <span class="fw-bold d-block text-primary">$@pago.ACuenta.ToString("F2")</span>
+                    <span class="fw-bold d-block text-primary">@MoneyFormatter.Mostrar(pago.ACuenta)</span>
                     @if (pago.Facturado)
                     {
                         <span class="badge bg-success small">Facturado</span>

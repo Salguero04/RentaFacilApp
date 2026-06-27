@@ -1,5 +1,6 @@
 @page "/contratos"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -52,7 +53,7 @@
                         <hr class="my-2 opacity-25" />
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="text-secondary small">Monto mensual:</span>
-                            <span class="fw-bold text-primary fs-5">$@c.Monto.ToString("F2")</span>
+                            <span class="fw-bold text-primary fs-5">@MoneyFormatter.Mostrar(c.Monto)</span>
                         </div>
                     </div>
                 </div>

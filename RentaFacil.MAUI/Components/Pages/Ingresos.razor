@@ -1,5 +1,6 @@
 @page "/ingresos"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -46,7 +47,7 @@ else
                     </div>
                     <span class="text-success fw-bold small">Alquileres</span>
                 </div>
-                <h4 class="fw-bold text-success mb-0">$@totalAlquileres.ToString("F2")</h4>
+                <h4 class="fw-bold text-success mb-0">@MoneyFormatter.Mostrar(totalAlquileres)</h4>
             </div>
         </div>
         <div class="col-6">
@@ -57,7 +58,7 @@ else
                     </div>
                     <span class="text-warning-dark fw-bold small" style="color: #f57f17;">Servicios</span>
                 </div>
-                <h4 class="fw-bold mb-0" style="color: #f57f17;">$@totalServicios.ToString("F2")</h4>
+                <h4 class="fw-bold mb-0" style="color: #f57f17;">@MoneyFormatter.Mostrar(totalServicios)</h4>
             </div>
         </div>
         <div class="col-12">
@@ -72,7 +73,7 @@ else
                             <small class="text-muted">Renta + Servicios Extras</small>
                         </div>
                     </div>
-                    <h2 class="fw-bold text-primary mb-0">$@((totalAlquileres + totalServicios).ToString("F2"))</h2>
+                    <h2 class="fw-bold text-primary mb-0">@MoneyFormatter.Mostrar(totalAlquileres + totalServicios)</h2>
                 </div>
             </div>
         </div>
@@ -110,15 +111,15 @@ else
                     <div class="row bg-light rounded p-3 text-center g-2">
                         <div class="col-4">
                             <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Alquileres</small>
-                            <span class="fw-bold text-success">$@item.Alquileres.ToString("F2")</span>
+                            <span class="fw-bold text-success">@MoneyFormatter.Mostrar(item.Alquileres)</span>
                         </div>
                         <div class="col-4">
                             <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Servicios</small>
-                            <span class="fw-bold text-warning-dark" style="color: #f57f17;">$@item.Servicios.ToString("F2")</span>
+                            <span class="fw-bold text-warning-dark" style="color: #f57f17;">@MoneyFormatter.Mostrar(item.Servicios)</span>
                         </div>
                         <div class="col-4 border-start">
                             <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">Total</small>
-                            <span class="fw-bold text-primary">$@item.Total.ToString("F2")</span>
+                            <span class="fw-bold text-primary">@MoneyFormatter.Mostrar(item.Total)</span>
                         </div>
                     </div>
                 </div>

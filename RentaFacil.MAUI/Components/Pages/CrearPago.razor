@@ -1,5 +1,6 @@
 @page "/crearpago/{ContratoId:int}"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @using RentaFacil.MAUI.ViewModels
 @inject ApiClient Api
@@ -41,7 +42,7 @@ else
                     </div>
                     <div class="d-flex justify-content-between small">
                         <span>Total</span>
-                        <span>@estado.Contrato.Monto.ToString("F2")</span>
+                        <span>@MoneyFormatter.Mostrar(estado.Contrato.Monto)</span>
                     </div>
                     <div class="d-flex justify-content-between small text-success">
                         <span>A Cta</span>
@@ -49,7 +50,7 @@ else
                     </div>
                     <div class="d-flex justify-content-between small text-danger fw-bold">
                         <span>Saldo</span>
-                        <span>@estado.Contrato.Monto.ToString("F2")</span>
+                        <span>@MoneyFormatter.Mostrar(estado.Contrato.Monto)</span>
                     </div>
                 </div>
             </div>

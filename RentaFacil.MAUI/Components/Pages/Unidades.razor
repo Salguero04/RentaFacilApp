@@ -1,5 +1,6 @@
 @page "/inmuebles/{InmuebleId:int}/unidades"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 @inject NavigationManager Nav
@@ -53,7 +54,7 @@
                             </div>
                             <div>
                                 <h6 class="fw-bold mb-0">@uni.Nombre</h6>
-                                <small class="text-muted d-block">Renta: $@uni.MontoRenta.ToString("F2")</small>
+                                <small class="text-muted d-block">Renta: @MoneyFormatter.Mostrar(uni.MontoRenta)</small>
                                 <span class="badge @(uni.Ocupada ? "bg-success" : "bg-secondary") rounded-pill mt-1" style="font-size: 0.75rem;">
                                     @(uni.Ocupada ? "ALQUILADA" : "DISPONIBLE")
                                 </span>

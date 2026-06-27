@@ -1,5 +1,6 @@
 @page "/pagos"
 @using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
 @using RentaFacil.MAUI.Services
 @inject ApiClient Api
 
@@ -38,8 +39,8 @@ else
                     <td>@p.Id</td>
                     <td>@p.ContratoId</td>
                     <td>@p.Periodo</td>
-                    <td>$@p.TotalMonto</td>
-                    <td>$@p.ACuenta</td>
+                    <td>@MoneyFormatter.Mostrar(p.TotalMonto)</td>
+                    <td>@MoneyFormatter.Mostrar(p.ACuenta)</td>
                     <td>@(p.Completado ? "COMPLETO" : "PENDIENTE")</td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" @onclick='() => DescargarRecibo(p.Id, "ticket")'>
