@@ -30,6 +30,12 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(connectionString, sqlOpt => sqlOpt.MigrationsHistoryTable("__EFMigrationsHistory", "config"))
            .AddInterceptors(sp.GetRequiredService<RentaFacil.API.Data.AuditoriaInterceptor>()));
 
+// Factory registrado como base para el futuro salto a BD-por-tenant
+// (un TenantDbContextFactory elegiría la connection string según el JWT).
+// Hoy no cambia el comportamiento: usa la misma config de SQL Server.
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlServer(connectionString, sqlOpt => sqlOpt.MigrationsHistoryTable("__EFMigrationsHistory", "config")));
+
 // Dependency Injection
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IInquilinoRepository, RentaFacil.API.Repositories.InquilinoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IInquilinoService, RentaFacil.API.Services.InquilinoService>();
