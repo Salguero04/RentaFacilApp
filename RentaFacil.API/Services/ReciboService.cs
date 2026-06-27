@@ -1,8 +1,10 @@
+using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RentaFacil.API.Models;
 using RentaFacil.API.Repositories.Interfaces;
+using RentaFacil.Shared.Globalization;
 
 namespace RentaFacil.API.Services.Interfaces
 {
@@ -84,7 +86,7 @@ namespace RentaFacil.API.Services
                     column.Item().Text(text =>
                     {
                         text.Span("Fecha: ").SemiBold();
-                        text.Span($"{pago.FechaPago:dd/MM/yyyy}");
+                        text.Span(pago.FechaPago.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
                     });
                     column.Item().Text(text =>
                     {
@@ -124,17 +126,17 @@ namespace RentaFacil.API.Services
                     });
 
                     table.Cell().Text($"Renta Periodo {pago.Periodo}");
-                    table.Cell().AlignRight().Text($"${pago.TotalMonto}");
+                    table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(pago.TotalMonto));
 
                     table.Cell().Text("Servicios Extra");
-                    table.Cell().AlignRight().Text($"${pago.Servicios}");
+                    table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(pago.Servicios));
 
                     table.Cell().PaddingTop(10).Text("Monto Recibido (A Cuenta)").SemiBold();
-                    table.Cell().PaddingTop(10).AlignRight().Text($"${pago.ACuenta}").SemiBold();
+                    table.Cell().PaddingTop(10).AlignRight().Text(MoneyFormatter.Mostrar(pago.ACuenta)).SemiBold();
 
                     table.Cell().Text("Restante");
                     var restante = (pago.TotalMonto + pago.Servicios) - pago.ACuenta;
-                    table.Cell().AlignRight().Text($"${(restante > 0 ? restante : 0)}");
+                    table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(restante > 0 ? restante : 0));
                 });
 
                 if (formato == "ticket")
