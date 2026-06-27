@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="Moneda.Simbolo" xml:space="preserve">
+    <value>$</value>
+  </data>
+  <data name="Moneda.Nombre" xml:space="preserve">
+    <value>Dólar estadounidense</value>
+  </data>
+  <data name="Error.FormatoMoneda" xml:space="preserve">
+    <value>El monto debe ser un número válido (ej: 1500,50)</value>
+  </data>
+  <data name="Error.IdentificacionInvalida" xml:space="preserve">
+    <value>La cédula o RUC ingresado no es válido</value>
+  </data>
+  <data name="Error.CampoRequerido" xml:space="preserve">
+    <value>Este campo es obligatorio</value>
+  </data>
+</root>
