@@ -22,6 +22,8 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
+		builder.Services.AddLocalization(options => options.ResourcesPath = "Globalization/Resources");
+
 		// API Client Configuration usando ApiConfig centralizado
 		var apiBaseUrl = RentaFacil.MAUI.Config.ApiConfig.BaseUrl;
 
