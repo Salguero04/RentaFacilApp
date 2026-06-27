@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +12,11 @@ using QuestPDF.Infrastructure;
 
 // Configure QuestPDF License (Community)
 QuestPDF.Settings.License = LicenseType.Community;
+
+// Globalización — la API siempre formatea/parsea internamente en InvariantCulture
+// (punto decimal), independiente del locale del SO que la hostee.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
