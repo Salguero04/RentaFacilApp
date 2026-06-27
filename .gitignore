@@ -480,3 +480,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Base de datos SQLite local (legacy, ya no se usa tras migrar a SQL Server)
+RentaFacil.API/*.db
+RentaFacil.API/*.db-shm
+RentaFacil.API/*.db-wal

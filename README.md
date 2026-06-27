@@ -18,7 +18,7 @@ Arquitectura limpia dividida en Cliente, Servidor y Recursos Compartidos:
 
 - **Frontend (Cliente):** `.NET MAUI Blazor Hybrid` — experiencia nativa en Android, iOS, Windows y macOS reutilizando componentes web (HTML/CSS/C#), más uso web.
 - **Backend (Servidor):** `ASP.NET Core Web API` (.NET 10).
-- **Base de Datos:** `Entity Framework Core` con `SQLite` (desarrollo local) → `MySQL` (producción).
+- **Base de Datos:** `Entity Framework Core` con `SQL Server` (local y producción), organizada en schemas `auth`/`renta`/`config`/`audit`.
 - **Reportes:** `QuestPDF` para la generación de documentos.
 - **Pruebas:** `xUnit` + `Moq` + `FluentAssertions`.
 

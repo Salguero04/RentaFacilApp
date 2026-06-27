@@ -22,10 +22,9 @@
 - **Causa real:** `RentaFacil.MAUI/Config/ApiConfig.cs` tiene la URL de producción escrita literal en el código (`http://200.126.17.232:5295`), seleccionada vía el compile constant `LOCAL` (definido solo en Debug).
 - **Solución:** al cambiar de red/servidor, actualizar esa línea y recompilar — no hay configuración en runtime todavía.
 
-## `rentafacil.db` está versionado en git y cambia solo con `dotnet run`
-- **Pasa cuando:** se corre la API localmente y luego se revisa `git status` — aparece `rentafacil.db` modificado aunque no se haya tocado código.
-- **Causa real:** el archivo SQLite vive dentro de `RentaFacil.API/` y está trackeado en git (no en `.gitignore`); cada `dotnet run` aplica migraciones y/o el seed de datos dummy si la tabla `Inquilinos` está vacía, lo que modifica el archivo binario.
-- **Solución:** no commitear este archivo por accidente junto con cambios de código — revisar el diff antes de `git add`. [PENDIENTE: confirmar con el usuario si se quiere agregar `*.db` a `.gitignore` y dejar de versionarlo, o si es intencional para tener datos de ejemplo compartidos.]
+## `rentafacil.db` (SQLite, legacy) — ya RESUELTO
+- **Era:** el archivo SQLite `RentaFacil.API/rentafacil.db` vivía trackeado en git y cambiaba solo con cada `dotnet run` (migraciones + seed), ensuciando `git status`.
+- **Resuelto (2026-06-26):** al migrar a SQL Server (ver `decisiones.md`) SQLite dejó de usarse. El archivo se sacó del control de versiones (`git rm --cached`) y `RentaFacil.API/*.db`/`-shm`/`-wal` están en `.gitignore`. Ya no hay un binario de BD versionado.
 
 ## Cosas que parecen rotas pero son a propósito
 - **CORS abierto (`AllowAnyOrigin/Method/Header`) y `app.UseHttpsRedirection()` comentado** en `RentaFacil.API/Program.cs` — es intencional para permitir que el celular se conecte por HTTP plano en la LAN durante Fase 1. No "arreglar" esto sin confirmar con el usuario; sí hay que revisarlo antes de exponer la API a internet (Fase 2).

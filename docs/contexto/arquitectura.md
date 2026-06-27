@@ -7,7 +7,7 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 - Lenguaje / runtime: C# / .NET 10 (`net10.0` en los 4 proyectos)
 - Framework principal: ASP.NET Core Web API (backend) + .NET MAUI Blazor Hybrid (cliente Android/iOS/Windows/MacCatalyst)
 - ORM: Entity Framework Core 10
-- Base de datos: SQLite en local (`rentafacil.db`, Fase 1) → MySQL en producción (planeado, no implementado aún — ver `decisiones.md`)
+- Base de datos: SQL Server (local + producción) con 4 schemas organizacionales fijos (`auth`/`renta`/`config`/`audit`) — ver `decisiones.md`. Connection string por máquina vía user-secrets (`ConnectionStrings:Default`). (SQLite y MySQL quedaron descartados.)
 - PDF: QuestPDF (licencia Community) para recibos formato Ticket (80mm) y Carta (A4)
 - Tests: xUnit + Moq + FluentAssertions (`RentaFacil.Tests`)
 - Servicios externos: ninguno integrado todavía (OAuth de Google, WhatsApp deep link, etc. están planeados pero no implementados — ver la sección "Pendiente" de `CLAUDE.md`)
@@ -30,10 +30,10 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 - `docs/contexto/` → estos documentos de contexto
 
 ## Flujo de datos
-Una pantalla Blazor (`Components/Pages/*.razor`) llama a `Services/ApiClient.cs` (HttpClient apuntando a `ApiConfig.BaseUrl`) → la request HTTP llega a un Controller de `RentaFacil.API` → el Controller delega en un Service (lógica de negocio) → el Service usa un Repository (EF Core) → `AppDbContext` lee/escribe en SQLite. La respuesta vuelve como un DTO de `RentaFacil.Shared` que la página Blazor renderiza directo (sin un ViewModel intermedio salvo `EstadoInquilinoViewModel`).
+Una pantalla Blazor (`Components/Pages/*.razor`) llama a `Services/ApiClient.cs` (HttpClient apuntando a `ApiConfig.BaseUrl`) → la request HTTP llega a un Controller de `RentaFacil.API` → el Controller delega en un Service (lógica de negocio) → el Service usa un Repository (EF Core) → `AppDbContext` lee/escribe en SQL Server. La respuesta vuelve como un DTO de `RentaFacil.Shared` que la página Blazor renderiza directo (sin un ViewModel intermedio salvo `EstadoInquilinoViewModel`).
 
 ## Esquema de base de datos
-Code-First con EF Core. En local es SQLite; el destino de producción es MySQL (`utf8mb4`, montos `DECIMAL(18,2)`). El esquema y las relaciones se definen en `AppDbContext.OnModelCreating` y se materializan en `RentaFacil.API/Migrations/` — esa es la fuente de verdad del DDL (no hay un script SQL aparte). Para detalle campo por campo de cada entidad ver `glosario.md`.
+Code-First con EF Core sobre SQL Server (local y producción), montos `decimal(18,2)`. Las tablas viven en 4 schemas organizacionales fijos (no por tenant): `auth` (Usuarios), `renta` (Inquilino/Inmueble/Unidad/Contrato/Pago, cada fila filtrada por `UsuarioId`), `config` (catálogos globales + `__EFMigrationsHistory`) y `audit` (hoy la auditoría vive como columnas `IAuditable` en `renta.*`). El esquema, las relaciones, los schemas y los índices de `UsuarioId` se definen en `AppDbContext.OnModelCreating` y se materializan en `RentaFacil.API/Migrations/` (migración `InitialSqlServer`) — esa es la fuente de verdad del DDL. Para detalle campo por campo de cada entidad ver `glosario.md`.
 
 ```
 Inquilinos ||--o{ Contratos : posee          (FK InquilinoId, borrado RESTRICT)
@@ -47,7 +47,7 @@ Reglas de borrado (definidas en `OnModelCreating`):
 - Borrar un **Contrato** elimina en cascada sus **Pagos**.
 - NO se puede borrar un **Inquilino** con Contratos ni una **Unidad** con Contratos (RESTRICT) — primero hay que quitar/cerrar los contratos.
 - `Inmueble.MontoRenta` solo aplica a `Tipo == Unico`; en `Multiple` la renta vive en cada `Unidad`.
-- `UsuarioId` (en `Inquilino`/`Inmueble`) existe pero NO se usa para filtrar consultas — ver `errores-conocidos.md`.
+- `UsuarioId` está en las 5 entidades de `renta.*` y **sí** se usa para filtrar cada lectura/escritura en los Repositories (IDOR/BOLA cerrado, indexado) — ver `errores-conocidos.md`.
 
 ## Lo que NO existe (y no hay que crear sin que lo pidan)
 - No hay autenticación de servidor (ni JWT ni ASP.NET Identity) — el login de MAUI es local y no protege la API.

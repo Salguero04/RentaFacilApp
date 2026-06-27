@@ -15,15 +15,15 @@
 ## Antes de dar algo por terminado
 - [ ] `dotnet build RentaFacil.slnx` sin errores
 - [ ] `dotnet test RentaFacil.Tests` en verde
-- [ ] Si se agregó/cambió un modelo: la migración EF Core correspondiente está creada y aplica limpio sobre `rentafacil.db`
-- [ ] No quedan cambios sin intención en `RentaFacil.API/rentafacil.db` (ver `errores-conocidos.md` — el archivo está versionado y se modifica solo con `dotnet run`)
+- [ ] Si se agregó/cambió un modelo: la migración EF Core correspondiente está creada y aplica limpio sobre la BD SQL Server (`dotnet ef database update`, o el `Migrate()` automático del arranque)
+- [ ] La BD SQLite legacy (`rentafacil.db`) ya NO está versionada (está en `.gitignore`); confirmar que no reaparezca por accidente en `git status`
 - [ ] [PENDIENTE: no hay linter/CI configurado para verificar automáticamente — no hay un comando adicional que correr.]
 
 ## Deploy (fases planeadas)
 Versionado y reglas de respaldo: ver decisión "Versionado SemVer adaptado" en `decisiones.md`.
 
-- **Fase 1 — Local (ACTUAL):** no hay deploy real. El "release" es generar un APK de prueba en `betas APKs/` y subir versión (`RentaFacilApp beta V1.0.X`). Base SQLite local. Cada nuevo `.apk` ⇒ `git commit` (y opcionalmente `push`) del código exacto que lo generó.
+- **Fase 1 — Local (ACTUAL):** no hay deploy real. El "release" es generar un APK de prueba en `betas APKs/` y subir versión (`RentaFacilApp beta V1.0.X`). Base SQL Server local (instancia por máquina, connection string en user-secrets). Cada nuevo `.apk` ⇒ `git commit` (y opcionalmente `push`) del código exacto que lo generó.
 - **Fase 2 — Render (planeada):** desplegar `RentaFacil.API` en Render (servidor de pruebas), con variables de entorno reales (CORS, connection string segura) y apuntando la app a la URL de Render. Se quita la etiqueta `beta` (`RentaFacilApp_V1.0.X`). Requisitos antes de pasar: compila sin errores y los secretos salen del código (`.env`).
-- **Fase 3 — Oracle Cloud (planeada):** salto a `V2.0.X` por cambio de infraestructura. Instancia Compute Linux + Docker + base gestionada (MySQL), disponibilidad 24/7. Requisitos antes de pasar: superar pruebas de latencia en Render y tener listos los scripts de migración de BD para producción.
+- **Fase 3 — Oracle Cloud (planeada):** salto a `V2.0.X` por cambio de infraestructura. Instancia Compute Linux + Docker + SQL Server gestionado/contenedorizado, disponibilidad 24/7. Requisitos antes de pasar: superar pruebas de latencia en Render y tener listos los scripts de migración de BD para producción.
 
 No hay scripts de deploy, `Dockerfile`/`docker-compose.yml` ni CI/CD en el repo todavía — todo Fase 2/3 está sin implementar.

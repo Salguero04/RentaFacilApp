@@ -2,11 +2,11 @@
 
 > Una entrada por decisión, inferida del código/docs del repo. Donde no hay evidencia explícita del "por qué" o de las alternativas descartadas, se deja marcado `[PENDIENTE]` en vez de inventarlo.
 
-## SQLite en local / MySQL en producción
-- **Decisión:** EF Core con SQLite (`Data Source=rentafacil.db`) en Fase 1 local; el destino de producción es MySQL.
-- **Por qué:** sin necesidad de servidor de base de datos para una app de uso personal en desarrollo; MySQL es la opción para cuando se despliegue en Render/Oracle Cloud.
-- **Descartado:** SQL Server (se barajó como opción para Fase 2, pero el diseño final apunta a MySQL; no hay código que use SQL Server).
-- **Estado:** vigente para Fase 1 (SQLite). La migración a MySQL en producción aún no está implementada.
+## SQL Server (local + producción) con schemas organizacionales
+- **Decisión:** EF Core con SQL Server en todos los entornos. Las tablas se organizan en 4 schemas fijos (no por tenant): `auth` (identidad), `renta` (dominio, filtrado por `UsuarioId` por fila), `config` (catálogos globales + `__EFMigrationsHistory`) y `audit` (trazabilidad, hoy como columnas `IAuditable` en `renta.*`). Connection string por máquina vía user-secrets (`ConnectionStrings:Default`, `Integrated Security=true` en local). Migración única `InitialSqlServer`. Plan: `docs/superpowers/plans/2026-06-26-migracion-sqlserver.md`.
+- **Por qué:** SQL Server ya está instalado en las máquinas de desarrollo (trabajo y casa); los schemas dan organización lógica y dejan lista la base para un futuro salto a BD-por-tenant (un `TenantDbContextFactory` que elija la connection string según el JWT — `IDbContextFactory` ya está registrado) sin tocar repositories/services/controllers.
+- **Descartado:** **SQLite** (era la BD local de Fase 1, `Data Source=rentafacil.db`) y **MySQL** (era el destino de producción planeado) — ambos reemplazados por SQL Server el 2026-06-26. SQLite ignoraba `decimal(18,2)` y no soporta schemas reales; mantener dos providers (local vs prod) añadía fricción.
+- **Estado:** vigente. Verificado end-to-end en la máquina de trabajo (`GGCBOADMWRK025\SQLEXPRESS`): migración aplicada, schemas/tablas creados, seed y smoke test HTTP OK. Pendiente: aplicar en la máquina de casa (`DESKTOP-07M16LE\LOCALDB`) y definir el hosting de producción.
 
 ## `LOCAL` compile constant para la URL de la API en MAUI
 - **Decisión:** `ApiConfig.cs` usa `#if LOCAL` (definido automáticamente en builds Debug vía `DefineConstants` en `RentaFacil.MAUI.csproj`) para elegir entre la IP de loopback del emulador Android (`10.0.2.2:5295`) y una IP fija de LAN/producción en Release.
