@@ -1,6 +1,7 @@
 using RentaFacil.API.Models;
 using RentaFacil.API.Repositories.Interfaces;
 using RentaFacil.API.Services.Interfaces;
+using RentaFacil.Shared.Enums;
 using RentaFacil.Shared.Models;
 
 namespace RentaFacil.API.Services;
@@ -10,12 +11,14 @@ public class ContratoService : IContratoService
     private readonly IContratoRepository _repository;
     private readonly IInquilinoRepository _inquilinoRepository;
     private readonly IUnidadRepository _unidadRepository;
+    private readonly INotificacionPendienteRepository _notificacionRepository;
 
-    public ContratoService(IContratoRepository repository, IInquilinoRepository inquilinoRepository, IUnidadRepository unidadRepository)
+    public ContratoService(IContratoRepository repository, IInquilinoRepository inquilinoRepository, IUnidadRepository unidadRepository, INotificacionPendienteRepository notificacionRepository)
     {
         _repository = repository;
         _inquilinoRepository = inquilinoRepository;
         _unidadRepository = unidadRepository;
+        _notificacionRepository = notificacionRepository;
     }
 
     public async Task<IEnumerable<ContratoDto>> GetAllAsync(int usuarioId)
@@ -55,6 +58,14 @@ public class ContratoService : IContratoService
         contrato.FechaInicio = dto.FechaInicio; contrato.FechaFin = dto.FechaInicio.AddMonths(dto.DuracionMeses);
         contrato.Observaciones = dto.Observaciones;
         await _repository.UpdateAsync(contrato);
+
+        // El inquilino tendrá la app a futuro: dejamos registro del cambio para notificarlo.
+        await _notificacionRepository.AddAsync(new NotificacionPendiente
+        {
+            ContratoId = contrato.Id, InquilinoId = contrato.InquilinoId,
+            Tipo = "ContratoEditado", Detalle = "El contrato fue modificado por el arrendador.",
+            Fecha = DateTime.Now, Notificado = false, UsuarioId = usuarioId
+        });
         return true;
     }
     public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
@@ -66,7 +77,8 @@ public class ContratoService : IContratoService
         return inquilino != null && unidad != null;
     }
 
-    private static ContratoDto MapToDto(Contrato c) => new(c.Id, c.InquilinoId, c.UnidadId, c.Monto, c.Garantia, c.Frecuencia, c.DuracionMeses, c.DiaPago, c.FechaInicio, c.FechaFin, c.Observaciones, c.Activo);
+    private static ContratoDto MapToDto(Contrato c) => new(
+        c.Id, c.InquilinoId, c.UnidadId, c.Monto, c.Garantia, c.Frecuencia, c.DuracionMeses, c.DiaPago, c.FechaInicio, c.FechaFin, c.Observaciones, c.Activo);
 }
 
 public class PagoService : IPagoService
@@ -95,13 +107,26 @@ public class PagoService : IPagoService
         var contrato = await _contratoRepository.GetByIdAsync(dto.ContratoId, usuarioId);
         if (contrato == null) return null;
 
+        // El total de servicios sale del desglose si viene; si no, del campo plano (compat).
+        var serviciosTotal = dto.Detalles != null && dto.Detalles.Count > 0
+            ? dto.Detalles.Sum(d => d.Monto)
+            : dto.Servicios;
+
         var pago = new Pago
         {
             ContratoId = dto.ContratoId, TotalMonto = dto.TotalMonto,
-            ACuenta = dto.ACuenta, Servicios = dto.Servicios,
+            ACuenta = dto.ACuenta, Servicios = serviciosTotal,
             FechaPago = dto.FechaPago, Periodo = dto.Periodo,
-            Facturado = dto.Facturado, Completado = dto.ACuenta >= dto.TotalMonto, UsuarioId = usuarioId
+            // Completado considera renta + servicios (igual que el "restante" del recibo).
+            Facturado = dto.Facturado, Completado = dto.ACuenta >= dto.TotalMonto + serviciosTotal, UsuarioId = usuarioId
         };
+        if (dto.Detalles != null)
+        {
+            foreach (var d in dto.Detalles)
+            {
+                pago.DetalleServicios.Add(new DetalleServicioPago { Tipo = d.Tipo, Monto = d.Monto, UsuarioId = usuarioId });
+            }
+        }
         var created = await _repository.AddAsync(pago);
         return MapToDto(created);
     }
@@ -117,13 +142,15 @@ public class PagoService : IPagoService
         pago.ACuenta = dto.ACuenta; pago.Servicios = dto.Servicios;
         pago.FechaPago = dto.FechaPago; pago.Periodo = dto.Periodo;
         pago.Facturado = dto.Facturado;
-        pago.Completado = dto.ACuenta >= dto.TotalMonto;
+        pago.Completado = dto.ACuenta >= dto.TotalMonto + dto.Servicios;
         await _repository.UpdateAsync(pago);
         return true;
     }
     public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
 
-    private static PagoDto MapToDto(Pago p) => new(p.Id, p.ContratoId, p.TotalMonto, p.ACuenta, p.Servicios, p.FechaPago, p.Periodo, p.Facturado, p.Completado);
+    private static PagoDto MapToDto(Pago p) => new(
+        p.Id, p.ContratoId, p.TotalMonto, p.ACuenta, p.Servicios, p.FechaPago, p.Periodo, p.Facturado, p.Completado,
+        p.DetalleServicios?.Select(d => new DetalleServicioPagoDto(d.Tipo, d.Monto)).ToList());
 }
 
 public class RecordatorioService : IRecordatorioService

@@ -1,0 +1,409 @@
+@page "/medidores"
+@using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Enums
+@using RentaFacil.Shared.Globalization
+@using RentaFacil.UI.Services
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Medidores</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="text-center mb-3">
+    <span class="bg-white border rounded-pill px-4 py-2 fw-bold text-secondary shadow-sm">@medidores.Count medidores</span>
+</div>
+
+@if (cargando)
+{
+    <p class="text-center mt-4"><em>Cargando medidores...</em></p>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger m-3">@error</div>
+}
+else if (!medidores.Any())
+{
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
+        <i class="bi bi-speedometer2 fs-1 d-block mb-3"></i>
+        <p>No tienes medidores configurados aún.</p>
+    </div>
+}
+else
+{
+    @foreach (var m in medidores)
+    {
+        <div class="card border-0 shadow-sm rounded-4 mb-3" style="border-left: 5px solid #2a7587 !important;">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 50px; height: 50px; background-color: #2a7587;">
+                        <i class="bi @IconoServicio(m.Tipo) fs-4"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold mb-1">@m.Nombre.ToUpper()</h6>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border">@EtiquetaTipo(m.Tipo)</span>
+                            <span class="badge bg-light text-dark border"><i class="bi bi-people"></i> @m.InquilinosCount</span>
+                            <span class="badge bg-light text-dark border">@(m.SubConsumoHabilitado ? "Sub-consumo: Sí" : "Sub-consumo: No")</span>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-1" @onclick="() => ToggleMenu(m.Id)"><i class="bi bi-three-dots-vertical fs-5"></i></button>
+                        @if (menuAbierto == m.Id)
+                        {
+                            <div class="position-absolute end-0 bg-white border rounded-3 shadow-sm" style="z-index: 10; min-width: 140px;">
+                                <button class="dropdown-item py-2 px-3 w-100 text-start border-0 bg-transparent" @onclick="() => AbrirEditar(m)">
+                                    <i class="bi bi-pencil me-2"></i>Editar
+                                </button>
+                                <button class="dropdown-item py-2 px-3 w-100 text-start border-0 bg-transparent text-danger" @onclick="() => EliminarMedidor(m)">
+                                    <i class="bi bi-trash me-2"></i>Eliminar
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="row gx-2 mt-2">
+                    <div class="col-6">
+                        <button class="btn btn-outline-info w-100 fw-bold rounded-3" @onclick="() => AbrirInquilinos(m)">
+                            <i class="bi bi-people"></i> Inquilinos
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-info text-white w-100 fw-bold rounded-3" @onclick="() => AbrirFacturas(m)">
+                            <i class="bi bi-receipt"></i> Facturas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<button class="btn btn-info text-white fw-bold rounded-pill shadow position-fixed d-flex align-items-center gap-2"
+        style="bottom: 1.5rem; right: 1.5rem; padding: 0.75rem 1.25rem;" @onclick="() => AbrirConfigurar(null)">
+    <i class="bi bi-speedometer2 fs-5"></i> Agregar Medidor
+</button>
+
+@* ─────────── Bottom sheet: Configurar Medidor ─────────── *@
+@if (mostrarConfigurar)
+{
+    <div class="bottom-sheet-overlay" @onclick="CerrarSheets"></div>
+    <div class="bottom-sheet slide-up p-4" style="max-height: 85vh; overflow-y: auto;">
+        <h4 class="fw-bold mb-3">@(editId == null ? "Configurar Nuevo Medidor" : "Editar Medidor")</h4>
+
+        <label class="text-info small fw-bold">Nombre o Etiqueta</label>
+        <input class="form-control mb-3" placeholder="Ej. Medidor General, Pasillo 2…" @bind="cfgNombre" />
+
+        <label class="text-muted small fw-bold d-block mb-1">TIPO DE SERVICIO</label>
+        <div class="row g-2 mb-3">
+            @foreach (var t in new[] { TipoServicio.Electricidad, TipoServicio.Agua, TipoServicio.Gas })
+            {
+                <div class="col-4">
+                    <button class="btn w-100 py-3 rounded-3 fw-bold @(cfgTipo == t ? "btn-info text-white" : "btn-outline-secondary")" @onclick="() => cfgTipo = t">
+                        <i class="bi @IconoServicio(t) d-block fs-4 mb-1"></i>
+                        <span style="font-size: 0.75rem;">@EtiquetaTipo(t).ToUpper()</span>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <label class="text-muted small fw-bold d-block mb-1">INMUEBLE</label>
+        <select class="form-select mb-3" @bind="cfgInmuebleId">
+            <option value="0" disabled>Selecciona un inmueble</option>
+            @foreach (var inm in inmuebles)
+            {
+                <option value="@inm.Id">@inm.Nombre</option>
+            }
+        </select>
+
+        <label class="text-muted small fw-bold d-block mb-1">MODO DE COBRO</label>
+        <select class="form-select mb-3" @bind="cfgModo">
+            <option value="@ModoMedidor.PorPlanilla">Por planilla (factura de la empresa)</option>
+            <option value="@ModoMedidor.PorLectura">Por lectura (mi propio medidor)</option>
+        </select>
+
+        @if (cfgModo == ModoMedidor.PorLectura)
+        {
+            <label class="text-muted small fw-bold d-block mb-1">TARIFA POR UNIDAD (m³/kWh)</label>
+            <input type="number" step="0.0001" class="form-control mb-3" placeholder="0.00" @bind="cfgTarifa" />
+        }
+
+        <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-bold d-block">Habilitar Sub-Consumo</span>
+                    <small class="text-muted">Permite prorratear la factura entre varios inquilinos</small>
+                </div>
+                <div class="form-check form-switch fs-4 mb-0">
+                    <input class="form-check-input" type="checkbox" @bind="cfgSubConsumo">
+                </div>
+            </div>
+        </div>
+
+        <div class="row gx-3">
+            <div class="col-5"><button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill" @onclick="CerrarSheets">Cancelar</button></div>
+            <div class="col-7"><button class="btn btn-info text-white w-100 py-2 fw-bold rounded-pill" @onclick="GuardarMedidor">Guardar Medidor</button></div>
+        </div>
+    </div>
+}
+
+@* ─────────── Bottom sheet: Inquilinos del medidor ─────────── *@
+@if (mostrarInquilinos && medidorSel != null)
+{
+    <div class="bottom-sheet-overlay" @onclick="CerrarSheets"></div>
+    <div class="bottom-sheet slide-up p-4" style="max-height: 85vh; overflow-y: auto;">
+        <h4 class="fw-bold mb-1">Vincular Inquilino</h4>
+        <p class="text-muted small mb-3">@medidorSel.Nombre · @EtiquetaTipo(medidorSel.Tipo)</p>
+
+        @if (vinculos.Any())
+        {
+            <div class="list-group list-group-flush mb-3">
+                @foreach (var v in vinculos)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <span class="fw-bold d-block">@v.InquilinoNombre</span>
+                            <small class="text-muted">@MetodoTexto(v.MetodoCobro)@(v.MetodoCobro == MetodoCobroInquilino.Manual ? $" · {MoneyFormatter.Mostrar(v.MontoFijo)}" : $" · lectura {v.LecturaAnterior}→{v.LecturaActual}")</small>
+                        </div>
+                        <button class="btn btn-link text-danger p-0" @onclick="() => Desvincular(v)"><i class="bi bi-x-circle fs-5"></i></button>
+                    </div>
+                }
+            </div>
+        }
+
+        <h6 class="fw-bold small text-muted">AGREGAR INQUILINO</h6>
+        <select class="form-select mb-2" @bind="vinInquilinoId">
+            <option value="0" disabled>Selecciona un inquilino</option>
+            @foreach (var i in inquilinos)
+            {
+                <option value="@i.Id">@i.NombreCompleto</option>
+            }
+        </select>
+        <select class="form-select mb-2" @bind="vinMetodo">
+            <option value="@MetodoCobroInquilino.Prorrateo">Prorrateo de la planilla</option>
+            <option value="@MetodoCobroInquilino.Tarifa">Tarifa por consumo (lectura)</option>
+            <option value="@MetodoCobroInquilino.Manual">Monto manual / fijo</option>
+        </select>
+
+        @if (vinMetodo == MetodoCobroInquilino.Manual)
+        {
+            <input type="number" step="0.01" class="form-control mb-2" placeholder="Monto fijo" @bind="vinMontoFijo" />
+        }
+        else
+        {
+            <div class="row g-2 mb-2">
+                <div class="col-6"><input type="number" step="0.0001" class="form-control" placeholder="Lectura anterior" @bind="vinLecturaAnterior" /></div>
+                <div class="col-6"><input type="number" step="0.0001" class="form-control" placeholder="Lectura actual" @bind="vinLecturaActual" /></div>
+            </div>
+        }
+
+        <div class="row gx-3 mt-3">
+            <div class="col-5"><button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill" @onclick="CerrarSheets">Cerrar</button></div>
+            <div class="col-7"><button class="btn btn-info text-white w-100 py-2 fw-bold rounded-pill" @onclick="GuardarVinculo">Vincular</button></div>
+        </div>
+    </div>
+}
+
+@* ─────────── Bottom sheet: Facturas del medidor ─────────── *@
+@if (mostrarFacturas && medidorSel != null)
+{
+    <div class="bottom-sheet-overlay" @onclick="CerrarSheets"></div>
+    <div class="bottom-sheet slide-up p-4" style="max-height: 85vh; overflow-y: auto;">
+        <h4 class="fw-bold mb-1">Facturas / Planillas</h4>
+        <p class="text-muted small mb-3">@medidorSel.Nombre · @EtiquetaTipo(medidorSel.Tipo)</p>
+
+        @if (facturas.Any())
+        {
+            <div class="list-group list-group-flush mb-3">
+                @foreach (var f in facturas.OrderByDescending(x => x.Anio).ThenByDescending(x => x.Mes))
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="fw-bold">@NombreMes(f.Mes) @f.Anio</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-info">@MoneyFormatter.Mostrar(f.MontoReal)</span>
+                            <button class="btn btn-link text-danger p-0" @onclick="() => EliminarFactura(f)"><i class="bi bi-x-circle"></i></button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <h6 class="fw-bold small text-muted">REGISTRAR PLANILLA</h6>
+        <div class="row g-2 mb-3">
+            <div class="col-5">
+                <select class="form-select" @bind="facMes">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i">@NombreMes(i)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-3"><input type="number" class="form-control" @bind="facAnio" /></div>
+            <div class="col-4"><input type="number" step="0.01" class="form-control" placeholder="Monto" @bind="facMonto" /></div>
+        </div>
+
+        <div class="row gx-3">
+            <div class="col-5"><button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill" @onclick="CerrarSheets">Cerrar</button></div>
+            <div class="col-7"><button class="btn btn-info text-white w-100 py-2 fw-bold rounded-pill" @onclick="GuardarFactura">Guardar Factura</button></div>
+        </div>
+    </div>
+}
+
+<style>
+    .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1040; }
+    .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; z-index: 1050; }
+    .slide-up { animation: slideUp 0.3s ease-out forwards; }
+    @@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+
+@code {
+    [CascadingParameter] public RentaFacil.UI.Layout.MainLayout Layout { get; set; } = null!;
+
+    private List<MedidorDto> medidores = new();
+    private List<InmuebleDto> inmuebles = new();
+    private List<InquilinoDto> inquilinos = new();
+    private bool cargando = true;
+    private string error = "";
+    private int menuAbierto = 0;
+
+    private MedidorDto? medidorSel;
+
+    // Configurar
+    private bool mostrarConfigurar = false;
+    private int? editId = null;
+    private string cfgNombre = "";
+    private TipoServicio cfgTipo = TipoServicio.Electricidad;
+    private int cfgInmuebleId = 0;
+    private ModoMedidor cfgModo = ModoMedidor.PorPlanilla;
+    private decimal cfgTarifa = 0;
+    private bool cfgSubConsumo = true;
+
+    // Vincular inquilino
+    private bool mostrarInquilinos = false;
+    private List<MedidorInquilinoDto> vinculos = new();
+    private int vinInquilinoId = 0;
+    private MetodoCobroInquilino vinMetodo = MetodoCobroInquilino.Prorrateo;
+    private decimal vinMontoFijo = 0;
+    private decimal vinLecturaAnterior = 0;
+    private decimal vinLecturaActual = 0;
+
+    // Facturas
+    private bool mostrarFacturas = false;
+    private List<FacturaMedidorDto> facturas = new();
+    private int facMes = DateTime.Today.Month;
+    private int facAnio = DateTime.Today.Year;
+    private decimal facMonto = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+        inmuebles = await Api.GetInmueblesAsync();
+        inquilinos = await Api.GetInquilinosAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true; error = "";
+        try { medidores = await Api.GetMedidoresAsync(); }
+        catch (Exception ex) { error = $"Error al cargar: {ex.Message}"; }
+        finally { cargando = false; }
+    }
+
+    private void ToggleMenu(int id) => menuAbierto = menuAbierto == id ? 0 : id;
+    private void CerrarSheets() { mostrarConfigurar = false; mostrarInquilinos = false; mostrarFacturas = false; }
+
+    // ── Configurar ───────────────────────────────────────────────────
+    private void AbrirConfigurar(MedidorDto? m)
+    {
+        menuAbierto = 0;
+        editId = m?.Id;
+        cfgNombre = m?.Nombre ?? "";
+        cfgTipo = m?.Tipo ?? TipoServicio.Electricidad;
+        cfgInmuebleId = m?.InmuebleId ?? (inmuebles.FirstOrDefault()?.Id ?? 0);
+        cfgModo = m?.Modo ?? ModoMedidor.PorPlanilla;
+        cfgTarifa = m?.Tarifa ?? 0;
+        cfgSubConsumo = m?.SubConsumoHabilitado ?? true;
+        mostrarConfigurar = true;
+    }
+
+    private void AbrirEditar(MedidorDto m) => AbrirConfigurar(m);
+
+    private async Task GuardarMedidor()
+    {
+        if (string.IsNullOrWhiteSpace(cfgNombre) || cfgInmuebleId == 0) return;
+        var dto = new CrearMedidorDto(cfgNombre, cfgTipo, cfgInmuebleId, cfgModo, cfgSubConsumo, cfgTarifa);
+        if (editId == null) await Api.CrearMedidorAsync(dto);
+        else await Api.UpdateMedidorAsync(editId.Value, dto);
+        CerrarSheets();
+        await CargarAsync();
+    }
+
+    private async Task EliminarMedidor(MedidorDto m)
+    {
+        menuAbierto = 0;
+        await Api.DeleteMedidorAsync(m.Id);
+        await CargarAsync();
+    }
+
+    // ── Inquilinos ───────────────────────────────────────────────────
+    private async Task AbrirInquilinos(MedidorDto m)
+    {
+        medidorSel = m;
+        vinInquilinoId = 0; vinMetodo = MetodoCobroInquilino.Prorrateo; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
+        vinculos = await Api.GetVinculosMedidorAsync(m.Id);
+        mostrarInquilinos = true;
+    }
+
+    private async Task GuardarVinculo()
+    {
+        if (medidorSel == null || vinInquilinoId == 0) return;
+        var dto = new CrearMedidorInquilinoDto(medidorSel.Id, vinInquilinoId, null, vinMetodo, vinMontoFijo, vinLecturaAnterior, vinLecturaActual);
+        await Api.VincularInquilinoAsync(dto);
+        vinculos = await Api.GetVinculosMedidorAsync(medidorSel.Id);
+        vinInquilinoId = 0; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
+        await CargarAsync();
+    }
+
+    private async Task Desvincular(MedidorInquilinoDto v)
+    {
+        await Api.DesvincularInquilinoAsync(v.Id);
+        if (medidorSel != null) vinculos = await Api.GetVinculosMedidorAsync(medidorSel.Id);
+        await CargarAsync();
+    }
+
+    // ── Facturas ─────────────────────────────────────────────────────
+    private async Task AbrirFacturas(MedidorDto m)
+    {
+        medidorSel = m;
+        facMes = DateTime.Today.Month; facAnio = DateTime.Today.Year; facMonto = 0;
+        facturas = await Api.GetFacturasMedidorAsync(m.Id);
+        mostrarFacturas = true;
+    }
+
+    private async Task GuardarFactura()
+    {
+        if (medidorSel == null || facMonto <= 0) return;
+        await Api.GuardarFacturaMedidorAsync(new CrearFacturaMedidorDto(medidorSel.Id, facMes, facAnio, facMonto));
+        facturas = await Api.GetFacturasMedidorAsync(medidorSel.Id);
+        facMonto = 0;
+    }
+
+    private async Task EliminarFactura(FacturaMedidorDto f)
+    {
+        await Api.DeleteFacturaMedidorAsync(f.Id);
+        if (medidorSel != null) facturas = await Api.GetFacturasMedidorAsync(medidorSel.Id);
+    }
+
+    private void AbrirMenu() => Layout?.ToggleSidebar();
+
+    private static string EtiquetaTipo(TipoServicio t) => t switch { TipoServicio.Agua => "Agua", TipoServicio.Electricidad => "Electricidad", TipoServicio.Gas => "Gas", _ => "Otro" };
+    private static string IconoServicio(TipoServicio t) => t switch { TipoServicio.Agua => "bi-droplet-fill", TipoServicio.Electricidad => "bi-lightning-charge-fill", TipoServicio.Gas => "bi-fire", _ => "bi-gear-fill" };
+    private static string MetodoTexto(MetodoCobroInquilino m) => m switch { MetodoCobroInquilino.Tarifa => "Tarifa por consumo", MetodoCobroInquilino.Prorrateo => "Prorrateo", _ => "Monto manual" };
+    private static string NombreMes(int mes) => new DateTime(2000, mes, 1).ToString("MMMM");
+}

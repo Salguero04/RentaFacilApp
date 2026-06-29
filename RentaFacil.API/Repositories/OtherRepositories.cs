@@ -39,8 +39,8 @@ public class PagoRepository : IPagoRepository
     private readonly AppDbContext _context;
     public PagoRepository(AppDbContext context) => _context = context;
 
-    public async Task<IEnumerable<Pago>> GetAllAsync(int usuarioId) => await _context.Pagos.Where(p => p.UsuarioId == usuarioId).ToListAsync();
-    public async Task<Pago?> GetByIdAsync(int id, int usuarioId) => await _context.Pagos.FirstOrDefaultAsync(p => p.Id == id && p.UsuarioId == usuarioId);
+    public async Task<IEnumerable<Pago>> GetAllAsync(int usuarioId) => await _context.Pagos.Include(p => p.DetalleServicios).Where(p => p.UsuarioId == usuarioId).ToListAsync();
+    public async Task<Pago?> GetByIdAsync(int id, int usuarioId) => await _context.Pagos.Include(p => p.DetalleServicios).FirstOrDefaultAsync(p => p.Id == id && p.UsuarioId == usuarioId);
     public async Task<Pago> AddAsync(Pago pago)
     {
         _context.Pagos.Add(pago);

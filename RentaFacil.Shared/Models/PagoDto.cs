@@ -7,7 +7,8 @@ public record CrearPagoDto(
     decimal Servicios,
     DateTime FechaPago,
     string Periodo,
-    bool Facturado
+    bool Facturado,
+    List<DetalleServicioPagoDto>? Detalles = null
 );
 
 public record PagoDto(
@@ -19,5 +20,6 @@ public record PagoDto(
     DateTime FechaPago,
     string Periodo,
     bool Facturado,
-    bool Completado
+    bool Completado,
+    List<DetalleServicioPagoDto>? Detalles = null
 );

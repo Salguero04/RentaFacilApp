@@ -1,0 +1,128 @@
+@page "/inmuebles/{InmuebleId:int}/unidades/nueva"
+@page "/unidades/editar/{Id:int}"
+@using RentaFacil.Shared.Models
+@using RentaFacil.UI.Services
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;" @onclick="GoBack">
+        <i class="bi bi-arrow-left fs-4"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@(Id.HasValue ? "Editar Unidad" : "Nueva Unidad")</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-4 shadow-sm" style="min-height: 80vh;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando datos de la unidad...</em></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        <EditForm Model="this" OnValidSubmit="Guardar">
+            <div class="mb-4 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="bi bi-door-closed fs-2"></i>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary">Nombre de la Unidad</label>
+                <InputText @bind-Value="nombre" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: Dept 101, Local B" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary">Monto de Renta ($)</label>
+                <div class="input-group input-group-lg shadow-sm">
+                    <span class="input-group-text bg-light text-muted">$</span>
+                    <InputNumber @bind-Value="montoRenta" class="form-control rounded-end-3" placeholder="0.00" />
+                </div>
+            </div>
+
+            <div class="d-flex flex-column gap-2 mt-5">
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Unidad
+                </button>
+                <button type="button" class="btn btn-light btn-lg rounded-pill py-3 fw-bold border" @onclick="GoBack">
+                    Cancelar
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public int? InmuebleId { get; set; }
+    [Parameter] public int? Id { get; set; }
+
+    private string nombre = "";
+    private decimal montoRenta;
+    private bool cargando = false;
+    private string errorMessage = "";
+    private int inmuebleIdEfectivo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            cargando = true;
+            try
+            {
+                var unidades = await Api.GetUnidadesAsync();
+                var uni = unidades.FirstOrDefault(u => u.Id == Id.Value);
+                if (uni != null)
+                {
+                    nombre = uni.Nombre;
+                    montoRenta = uni.MontoRenta;
+                    inmuebleIdEfectivo = uni.InmuebleId;
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al cargar la unidad: {ex.Message}";
+            }
+            finally
+            {
+                cargando = false;
+            }
+        }
+        else if (InmuebleId.HasValue)
+        {
+            inmuebleIdEfectivo = InmuebleId.Value;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(nombre)) return;
+
+        errorMessage = "";
+        var dto = new CrearUnidadDto(nombre, montoRenta, inmuebleIdEfectivo);
+        try
+        {
+            if (Id.HasValue)
+            {
+                await Api.UpdateUnidadAsync(Id.Value, dto);
+            }
+            else
+            {
+                await Api.CrearUnidadAsync(dto);
+            }
+            Nav.NavigateTo($"/inmuebles/{inmuebleIdEfectivo}/unidades");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar la unidad: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo($"/inmuebles/{inmuebleIdEfectivo}/unidades");
+    }
+}

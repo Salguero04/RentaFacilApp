@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
-using RentaFacil.MAUI.Services;
+using RentaFacil.MAUI.Platform;
+using RentaFacil.UI.Abstractions;
+using RentaFacil.UI.Services;
 
 namespace RentaFacil.MAUI;
 
@@ -27,23 +29,29 @@ public static class MauiProgram
 		// API Client Configuration usando ApiConfig centralizado
 		var apiBaseUrl = RentaFacil.MAUI.Config.ApiConfig.BaseUrl;
 
-		builder.Services.AddSingleton<AuthService>();
+		// Implementaciones de plataforma de las abstracciones de RentaFacil.UI
+		builder.Services.AddSingleton<ITokenStore, MauiTokenStore>();
+		builder.Services.AddSingleton<IDispositivoServicio, MauiDispositivoServicio>();
 
+		// HttpClient (con el Bearer token vía AuthHeaderHandler que lee del ITokenStore)
+		builder.Services.AddScoped(sp =>
+		{
 #if DEBUG
-		var innerHandler = new HttpClientHandler
-		{
-			ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-		};
+			var innerHandler = new HttpClientHandler
+			{
+				ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+			};
 #else
-		var innerHandler = new HttpClientHandler();
+			var innerHandler = new HttpClientHandler();
 #endif
-
-		builder.Services.AddScoped(sp => new HttpClient(new AuthHeaderHandler(sp.GetRequiredService<AuthService>(), innerHandler))
-		{
-			BaseAddress = new Uri(apiBaseUrl),
-			Timeout = TimeSpan.FromSeconds(5)
+			return new HttpClient(new AuthHeaderHandler(sp.GetRequiredService<ITokenStore>(), innerHandler))
+			{
+				BaseAddress = new Uri(apiBaseUrl),
+				Timeout = TimeSpan.FromSeconds(20)
+			};
 		});
 
+		builder.Services.AddScoped<AuthService>();
 		builder.Services.AddScoped<ApiClient>();
 
 		return builder.Build();

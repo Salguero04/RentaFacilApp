@@ -4,6 +4,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RentaFacil.API.Models;
 using RentaFacil.API.Repositories.Interfaces;
+using RentaFacil.Shared.Enums;
 using RentaFacil.Shared.Globalization;
 
 namespace RentaFacil.API.Services.Interfaces
@@ -102,6 +103,14 @@ namespace RentaFacil.API.Services
             });
         }
 
+        private static string EtiquetaTipo(TipoServicio t) => t switch
+        {
+            TipoServicio.Agua => "Agua",
+            TipoServicio.Electricidad => "Electricidad",
+            TipoServicio.Gas => "Gas",
+            _ => "Otro"
+        };
+
         private void ComposeContent(IContainer container, Pago pago, string formato)
         {
             container.PaddingVertical(1, Unit.Centimetre).Column(column =>
@@ -128,8 +137,20 @@ namespace RentaFacil.API.Services
                     table.Cell().Text($"Renta Periodo {pago.Periodo}");
                     table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(pago.TotalMonto));
 
-                    table.Cell().Text("Servicios Extra");
-                    table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(pago.Servicios));
+                    // Servicios: itemizados por tipo si hay desglose; si no, una sola línea (compat).
+                    if (pago.DetalleServicios != null && pago.DetalleServicios.Any())
+                    {
+                        foreach (var d in pago.DetalleServicios)
+                        {
+                            table.Cell().Text($"Servicio: {EtiquetaTipo(d.Tipo)}");
+                            table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(d.Monto));
+                        }
+                    }
+                    else if (pago.Servicios > 0)
+                    {
+                        table.Cell().Text("Servicios Extra");
+                        table.Cell().AlignRight().Text(MoneyFormatter.Mostrar(pago.Servicios));
+                    }
 
                     table.Cell().PaddingTop(10).Text("Monto Recibido (A Cuenta)").SemiBold();
                     table.Cell().PaddingTop(10).AlignRight().Text(MoneyFormatter.Mostrar(pago.ACuenta)).SemiBold();

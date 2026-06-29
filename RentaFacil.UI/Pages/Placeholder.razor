@@ -1,0 +1,54 @@
+@page "/suscripcion"
+@page "/opinion"
+@page "/soporte"
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@GetTitle()</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-5 text-center" style="min-height: 80vh;">
+    <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 100px; height: 100px;">
+        <i class="bi bi-cone-striped" style="font-size: 3rem;"></i>
+    </div>
+    
+    <h4 class="fw-bold text-dark mb-3">Sección en Construcción</h4>
+    <p class="text-muted">
+        Esta funcionalidad estará disponible en futuras actualizaciones de la aplicación.<br/>
+        ¡Gracias por tu paciencia!
+    </p>
+
+    <button class="btn btn-primary rounded-pill px-4 py-2 mt-4 fw-bold shadow-sm" @onclick="GoBack">
+        Volver al Inicio
+    </button>
+</div>
+
+@code {
+    private string GetTitle()
+    {
+        var uri = Nav.Uri;
+        if (uri.Contains("suscripcion")) return "Suscripción";
+        if (uri.Contains("ingresos")) return "Ingresos";
+        if (uri.Contains("opinion")) return "Opinión";
+        if (uri.Contains("soporte")) return "Soporte / Ayuda";
+        return "Sección";
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    [CascadingParameter] public MainLayout Layout { get; set; } = null!;
+
+    private void AbrirMenu()
+    {
+        Layout?.ToggleSidebar();
+    }
+}

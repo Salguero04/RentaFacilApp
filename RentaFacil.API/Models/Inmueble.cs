@@ -23,6 +23,8 @@ public class Inmueble : IAuditable
 
     public ICollection<Unidad> Unidades { get; set; } = new List<Unidad>();
 
+    public ICollection<Medidor> Medidores { get; set; } = new List<Medidor>();
+
     public int? CreadoPorId { get; set; }
     public DateTime? FechaCreacion { get; set; }
     public int? ModificadoPorId { get; set; }

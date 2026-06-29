@@ -16,6 +16,11 @@ public class AppDbContext : DbContext
     public DbSet<Pago> Pagos { get; set; }
     public DbSet<Recordatorio> Recordatorios { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
+    public DbSet<Medidor> Medidores { get; set; }
+    public DbSet<MedidorInquilino> MedidoresInquilino { get; set; }
+    public DbSet<FacturaMedidor> FacturasMedidor { get; set; }
+    public DbSet<DetalleServicioPago> DetallesServicioPago { get; set; }
+    public DbSet<NotificacionPendiente> NotificacionesPendientes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +38,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Contrato>().ToTable("Contratos", "renta");
         modelBuilder.Entity<Pago>().ToTable("Pagos", "renta");
         modelBuilder.Entity<Recordatorio>().ToTable("Recordatorios", "renta");
+        modelBuilder.Entity<Medidor>().ToTable("Medidores", "renta");
+        modelBuilder.Entity<MedidorInquilino>().ToTable("MedidoresInquilino", "renta");
+        modelBuilder.Entity<FacturaMedidor>().ToTable("FacturasMedidor", "renta");
+        modelBuilder.Entity<DetalleServicioPago>().ToTable("DetallesServicioPago", "renta");
+        modelBuilder.Entity<NotificacionPendiente>().ToTable("NotificacionesPendientes", "renta");
 
         // Índices de UsuarioId en renta.* — SQL Server no indexa FKs ni este
         // campo automáticamente, y el WHERE UsuarioId = X corre en cada request.
@@ -42,6 +52,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Contrato>().HasIndex(c => c.UsuarioId);
         modelBuilder.Entity<Pago>().HasIndex(p => p.UsuarioId);
         modelBuilder.Entity<Recordatorio>().HasIndex(r => r.UsuarioId);
+        modelBuilder.Entity<Medidor>().HasIndex(m => m.UsuarioId);
+        modelBuilder.Entity<MedidorInquilino>().HasIndex(mi => mi.UsuarioId);
+        modelBuilder.Entity<FacturaMedidor>().HasIndex(f => f.UsuarioId);
+        modelBuilder.Entity<DetalleServicioPago>().HasIndex(d => d.UsuarioId);
+        modelBuilder.Entity<NotificacionPendiente>().HasIndex(n => n.UsuarioId);
 
         modelBuilder.Entity<Usuario>()
             .HasIndex(u => u.NombreUsuario)
@@ -76,5 +91,40 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(c => c.UnidadId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Medidores de un inmueble — cascada al borrar el inmueble (como Unidad).
+        modelBuilder.Entity<Inmueble>()
+            .HasMany(i => i.Medidores)
+            .WithOne(m => m.Inmueble)
+            .HasForeignKey(m => m.InmuebleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Inquilinos vinculados a un medidor — cascada al borrar el medidor.
+        modelBuilder.Entity<Medidor>()
+            .HasMany(m => m.Inquilinos)
+            .WithOne(mi => mi.Medidor)
+            .HasForeignKey(mi => mi.MedidorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // El vínculo referencia un Inquilino — RESTRICT (no borrar inquilino con medidores).
+        modelBuilder.Entity<MedidorInquilino>()
+            .HasOne(mi => mi.Inquilino)
+            .WithMany()
+            .HasForeignKey(mi => mi.InquilinoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Facturas/planillas de un medidor — cascada al borrar el medidor.
+        modelBuilder.Entity<Medidor>()
+            .HasMany(m => m.Facturas)
+            .WithOne(f => f.Medidor)
+            .HasForeignKey(f => f.MedidorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Desglose de servicios por pago — cascada al borrar el pago.
+        modelBuilder.Entity<Pago>()
+            .HasMany(p => p.DetalleServicios)
+            .WithOne(d => d.Pago)
+            .HasForeignKey(d => d.PagoId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

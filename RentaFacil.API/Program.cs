@@ -61,6 +61,11 @@ builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IPagoService, Rent
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IRecordatorioRepository, RentaFacil.API.Repositories.RecordatorioRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IRecordatorioService, RentaFacil.API.Services.RecordatorioService>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IReciboService, RentaFacil.API.Services.ReciboService>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IMedidorRepository, RentaFacil.API.Repositories.MedidorRepository>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IMedidorInquilinoRepository, RentaFacil.API.Repositories.MedidorInquilinoRepository>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IFacturaMedidorRepository, RentaFacil.API.Repositories.FacturaMedidorRepository>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.INotificacionPendienteRepository, RentaFacil.API.Repositories.NotificacionPendienteRepository>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IMedidorService, RentaFacil.API.Services.MedidorService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IUsuarioRepository, RentaFacil.API.Repositories.UsuarioRepository>();

@@ -1,0 +1,181 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using Microsoft.JSInterop
+@using RentaFacil.UI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<CascadingValue Value="this">
+    <div class="app-shell @ShellClasses">
+        <aside class="app-sidebar">
+            <NavMenu OnNavigate="HandleNavigate" />
+        </aside>
+
+        <div class="app-backdrop" @onclick="CloseSidebar"></div>
+
+        <div class="app-main">
+            <main class="w-100">
+                @Body
+            </main>
+        </div>
+    </div>
+</CascadingValue>
+
+<style>
+    .app-shell {
+        display: flex;
+        min-height: 100vh;
+        background-color: #f4f6f9;
+        position: relative;
+    }
+
+    /* --- Sidebar como columna (escritorio por defecto) --- */
+    .app-sidebar {
+        flex: 0 0 280px;
+        width: 280px;
+        background: #fff;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 1030;
+        transition: flex-basis .25s ease, width .25s ease, transform .25s ease;
+    }
+
+    .app-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        /* Los headers de cada página usan margin: 0 -1rem para sangrar a los bordes;
+           este padding hace que queden al ras del área de contenido (no del viewport). */
+        padding: 0 1rem;
+    }
+
+    .app-backdrop { display: none; }
+
+    /* --- Escritorio colapsado: riel angosto solo con iconos --- */
+    .app-shell.is-desktop.is-collapsed .app-sidebar {
+        flex-basis: 76px;
+        width: 76px;
+    }
+    .app-shell.is-desktop.is-collapsed .nav-label,
+    .app-shell.is-desktop.is-collapsed .sidebar-bottom-label,
+    .app-shell.is-desktop.is-collapsed .sidebar-header {
+        display: none;
+    }
+    .app-shell.is-desktop.is-collapsed .sidebar-nav .nav-link,
+    .app-shell.is-desktop.is-collapsed .sidebar-bottom .nav-link {
+        justify-content: center;
+        padding-left: .5rem;
+        padding-right: .5rem;
+    }
+
+    /* --- Móvil: cajón deslizante (off-canvas) con fondo oscuro --- */
+    @@media (max-width: 991.98px) {
+        .app-sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            flex-basis: 280px;
+            width: 280px;
+            height: 100vh;
+            transform: translateX(-100%);
+        }
+        .app-shell.is-open .app-sidebar {
+            transform: translateX(0);
+        }
+        .app-shell.is-open .app-backdrop {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 1020;
+        }
+    }
+</style>
+
+@code {
+    public bool isSidebarOpen = true;
+    private bool isMobile = false;
+
+    private DotNetObjectReference<MainLayout>? _ref;
+    private IJSObjectReference? _module;
+
+    private string ShellClasses =>
+        $"{(isSidebarOpen ? "is-open" : "is-collapsed")} {(isMobile ? "is-mobile" : "is-desktop")}";
+
+    public void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+        StateHasChanged();
+    }
+
+    public void CloseSidebar()
+    {
+        if (isSidebarOpen)
+        {
+            isSidebarOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleNavigate()
+    {
+        // En móvil, navegar cierra el cajón; en escritorio el sidebar persiste.
+        if (isMobile)
+        {
+            isSidebarOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public void SetIsMobile(bool mobile)
+    {
+        if (isMobile != mobile)
+        {
+            isMobile = mobile;
+            // Escritorio: sidebar visible por defecto. Móvil: oculto por defecto.
+            isSidebarOpen = !mobile;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += StateHasChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InicializarAsync();
+        if (!Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/RentaFacil.UI/sidebar.js");
+                _ref = DotNetObjectReference.Create(this);
+                await _module.InvokeVoidAsync("init", _ref);
+            }
+            catch
+            {
+                // Si el JS no carga, queda en modo escritorio por defecto (sidebar visible).
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+        _ref?.Dispose();
+    }
+}

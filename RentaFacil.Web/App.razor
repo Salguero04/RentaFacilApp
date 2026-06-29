@@ -1,0 +1,8 @@
+<Router AppAssembly="@typeof(App).Assembly"
+        AdditionalAssemblies="new[] { typeof(RentaFacil.UI._Marker).Assembly }"
+        NotFoundPage="typeof(RentaFacil.UI.Pages.NotFound)">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(RentaFacil.UI.Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+</Router>
