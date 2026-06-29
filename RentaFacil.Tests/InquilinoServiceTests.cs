@@ -94,4 +94,36 @@ public class InquilinoServiceTests
         result.Should().BeNull();
         _repositoryMock.Verify(repo => repo.GetByIdAsync(1, 99), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateAsync_ConRecursoExistente_RetornaTrue()
+    {
+        // Arrange
+        var inquilino = new Inquilino { Id = 1, NombreCompleto = "Juan Perez", Identificacion = "123456", UsuarioId = 1 };
+        var dto = new CrearInquilinoDto("Juan Actualizado", "654321", "555-9999", null);
+        _repositoryMock.Setup(repo => repo.GetByIdAsync(1, 1)).ReturnsAsync(inquilino);
+        _repositoryMock.Setup(repo => repo.UpdateAsync(It.IsAny<Inquilino>()));
+
+        // Act
+        var result = await _service.UpdateAsync(1, dto, 1);
+
+        // Assert
+        result.Should().BeTrue();
+        _repositoryMock.Verify(repo => repo.UpdateAsync(It.IsAny<Inquilino>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConRecursoQueNoExisteOEsDeOtroUsuario_RetornaFalse()
+    {
+        // Arrange
+        var dto = new CrearInquilinoDto("Juan Actualizado", "654321", "555-9999", null);
+        _repositoryMock.Setup(repo => repo.GetByIdAsync(1, 1)).ReturnsAsync((Inquilino?)null);
+
+        // Act
+        var result = await _service.UpdateAsync(1, dto, 1);
+
+        // Assert
+        result.Should().BeFalse();
+        _repositoryMock.Verify(repo => repo.UpdateAsync(It.IsAny<Inquilino>()), Times.Never);
+    }
 }
