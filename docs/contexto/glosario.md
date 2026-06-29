@@ -16,14 +16,21 @@
 - **Estado de Pagos** → vista principal de la app (`Home.razor`, ruta `/`) que muestra, por inquilino y periodo, el estado de cobro con indicadores de color. Semántica de colores — **ya implementada y verificada** en `Home.razor.GetEstadoColor` (ver "Último Contexto" de `CLAUDE.md`, tarea 2026-06-27): 🔵 azul = fecha de pago próxima; 🟡 amarillo = la fecha de pago es hoy; 🔴 rojo = fecha de pago ya pasó (vencido); barra 🟢 verde = pago `Completado`; badge verde/rojo = factura entregada / sin entregar (`Facturado`). `Pagos.razor` (ruta `/pagos`, sin entrada en el menú) es una vista secundaria en tabla con los mismos indicadores; `DetallePagos.razor` muestra el historial de pagos por contrato.
 - **Ingresos** → vista (`Ingresos.razor`) de reporte mensual por inmueble (alquileres + servicios), con selector de mes/año.
 - **Recordatorio** → nota libre con fecha programada, ligada a un `Inquilino` (y opcionalmente a un `Contrato`), creada desde el bottom-sheet "Recordatorio" de `Home.razor`. Es solo una nota persistida (`GET`/`POST`/`DELETE /api/recordatorios`) — no dispara notificaciones push ni recordatorios automáticos (eso sigue en "Pendiente" de `CLAUDE.md`).
+- **Servicio incluido** → un servicio básico (agua, luz) que un `Contrato` incluye, además de la renta. Cada servicio tiene un `TipoServicio` (`Agua`/`Luz`/`Otro`; Gas excluido a propósito) y una `ModalidadServicio`. El total que paga el inquilino = renta + servicios.
+- **Modalidad de servicio** → `MontoFijo` (compartido): el inquilino paga un monto fijo del contrato; el arrendador registra la **planilla** real y asume la diferencia (la app la reporta como pérdida/ganancia). `PorConsumo` (individual): el inquilino paga su consumo real capturado cada periodo; pass-through, el arrendador no entra, sin pérdida.
+- **Planilla / Costo de servicio** → el monto REAL que paga el arrendador por un servicio compartido (`MontoFijo`), registrado por inmueble + tipo + mes/año en la sección **Medidores** de `Ingresos.razor`. Entidad `CostoServicio`.
+- **Medidores** → subsección de `Ingresos.razor` que muestra, por inmueble y tipo de servicio: **Cobrado** a inquilinos / **Planilla** real / **Neto** (pérdida en rojo, ganancia en verde). Para servicios por consumo muestra solo lo cobrado (pass-through). Endpoint `GET /api/servicios/resumen?mes&anio`.
 
 ## Entidades principales (en `RentaFacil.API/Models/`)
 - **Inquilino** → `Id`, `NombreCompleto`, `Identificacion` (DNI/CI/RUC), `Telefono?`, `FotoUrl?`, `FechaRegistro`, `UsuarioId`. Tiene muchos `Contrato`s (borrado restringido: no se puede borrar un Inquilino con contratos).
 - **Inmueble** → `Id`, `Nombre`, `Direccion`, `Tipo` (`TipoInmueble`: Unico/Multiple), `MontoRenta` (solo relevante si `Tipo == Unico`), `UsuarioId`. Tiene muchas `Unidad`es (borrado en cascada).
 - **Unidad** → `Id`, `Nombre`, `MontoRenta`, `Ocupada`, `InmuebleId` (FK, cascada al borrar el Inmueble).
 - **Contrato** → `Id`, `InquilinoId` (FK, restringido), `UnidadId` (FK, restringido), `Monto`, `Garantia`, `Frecuencia`, `DuracionMeses`, `DiaPago`, `FechaInicio`, `FechaFin`, `Observaciones?`, `Activo`. Tiene muchos `Pago`s (borrado en cascada).
-- **Pago** → `Id`, `ContratoId` (FK, cascada), `TotalMonto`, `ACuenta`, `Servicios`, `FechaPago`, `Periodo`, `Facturado`, `Completado`.
+- **Pago** → `Id`, `ContratoId` (FK, cascada), `TotalMonto`, `ACuenta`, `Servicios` (suma de los servicios cobrados), `FechaPago`, `Periodo`, `Facturado`, `Completado`. Tiene muchos `DetalleServicioPago` (cascada).
 - **Recordatorio** → `Id`, `InquilinoId` (FK, cascada), `ContratoId?` (sin FK estricta, solo referencia), `Detalle`, `FechaProgramada`, `UsuarioId`.
+- **ServicioContrato** → `Id`, `ContratoId` (FK, cascada), `Tipo` (`TipoServicio`), `Modalidad` (`ModalidadServicio`), `MontoFijo` (aplica si `MontoFijo`), `Activo`, `UsuarioId`. Servicios incluidos en un contrato (puede tener varios).
+- **CostoServicio** → `Id`, `InmuebleId` (FK, cascada), `Tipo`, `Mes`, `Anio`, `MontoReal`, `FechaRegistro`, `UsuarioId`. La planilla real por inmueble/tipo/periodo (upsert por esa clave).
+- **DetalleServicioPago** → `Id`, `PagoId` (FK, cascada), `Tipo`, `Monto`, `UsuarioId`. Desglose de cuánto pagó el inquilino por cada servicio en un pago (para reportar agua vs luz y para itemizar el recibo).
 
 ## Siglas y nombres internos
 - **DTO** → Data Transfer Object; en este repo siempre un `record` en `RentaFacil.Shared/Models/`, con el patrón `Crear{Entidad}Dto` / `{Entidad}Dto`.

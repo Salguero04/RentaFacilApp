@@ -1,0 +1,68 @@
+@page "/login"
+@layout LoginLayout
+@using RentaFacil.UI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary">RentaFácil</h2>
+            <p class="text-muted">Gestión de Alquileres</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger p-2 text-center" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <form @onsubmit="DoLogin">
+            <div class="mb-3">
+                <label class="form-label text-muted small">Usuario</label>
+                <input type="text" class="form-control form-control-lg rounded-3" @bind="username" required />
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small">Contraseña</label>
+                <input type="password" class="form-control form-control-lg rounded-3" @bind="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 shadow-sm mb-3" disabled="@cargando">
+                @(cargando ? "Verificando..." : "Iniciar Sesión")
+            </button>
+        </form>
+    </div>
+</div>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string errorMessage = "";
+    private bool cargando = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InicializarAsync();
+        if (Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("/");
+        }
+    }
+
+    private async Task DoLogin()
+    {
+        errorMessage = "";
+        cargando = true;
+        var exito = await Auth.LoginAsync(username, password);
+        cargando = false;
+
+        if (exito)
+        {
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Usuario o contraseña incorrectos.";
+        }
+    }
+}

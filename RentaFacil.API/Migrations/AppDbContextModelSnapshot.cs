@@ -90,6 +90,82 @@ namespace RentaFacil.API.Migrations
                     b.ToTable("Contratos", "renta");
                 });
 
+            modelBuilder.Entity("RentaFacil.API.Models.DetalleServicioPago", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Monto")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PagoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PagoId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("DetallesServicioPago", "renta");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.FacturaMedidor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Anio")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MedidorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mes")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ModificadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MontoReal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedidorId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("FacturasMedidor", "renta");
+                });
+
             modelBuilder.Entity("RentaFacil.API.Models.Inmueble", b =>
                 {
                     b.Property<int>("Id")
@@ -185,6 +261,158 @@ namespace RentaFacil.API.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Inquilinos", "renta");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.Medidor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InmuebleId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ModificadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Modo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("SubConsumoHabilitado")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Tarifa")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InmuebleId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Medidores", "renta");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.MedidorInquilino", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ContratoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CreadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InquilinoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LecturaActual")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("LecturaAnterior")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("MedidorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MetodoCobro")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ModificadoPorId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MontoFijo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InquilinoId");
+
+                    b.HasIndex("MedidorId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("MedidoresInquilino", "renta");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.NotificacionPendiente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContratoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Detalle")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InquilinoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Notificado")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("NotificacionesPendientes", "renta");
                 });
 
             modelBuilder.Entity("RentaFacil.API.Models.Pago", b =>
@@ -396,6 +624,58 @@ namespace RentaFacil.API.Migrations
                     b.Navigation("Unidad");
                 });
 
+            modelBuilder.Entity("RentaFacil.API.Models.DetalleServicioPago", b =>
+                {
+                    b.HasOne("RentaFacil.API.Models.Pago", "Pago")
+                        .WithMany("DetalleServicios")
+                        .HasForeignKey("PagoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pago");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.FacturaMedidor", b =>
+                {
+                    b.HasOne("RentaFacil.API.Models.Medidor", "Medidor")
+                        .WithMany("Facturas")
+                        .HasForeignKey("MedidorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Medidor");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.Medidor", b =>
+                {
+                    b.HasOne("RentaFacil.API.Models.Inmueble", "Inmueble")
+                        .WithMany("Medidores")
+                        .HasForeignKey("InmuebleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inmueble");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.MedidorInquilino", b =>
+                {
+                    b.HasOne("RentaFacil.API.Models.Inquilino", "Inquilino")
+                        .WithMany()
+                        .HasForeignKey("InquilinoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RentaFacil.API.Models.Medidor", "Medidor")
+                        .WithMany("Inquilinos")
+                        .HasForeignKey("MedidorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inquilino");
+
+                    b.Navigation("Medidor");
+                });
+
             modelBuilder.Entity("RentaFacil.API.Models.Pago", b =>
                 {
                     b.HasOne("RentaFacil.API.Models.Contrato", "Contrato")
@@ -436,12 +716,26 @@ namespace RentaFacil.API.Migrations
 
             modelBuilder.Entity("RentaFacil.API.Models.Inmueble", b =>
                 {
+                    b.Navigation("Medidores");
+
                     b.Navigation("Unidades");
                 });
 
             modelBuilder.Entity("RentaFacil.API.Models.Inquilino", b =>
                 {
                     b.Navigation("Contratos");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.Medidor", b =>
+                {
+                    b.Navigation("Facturas");
+
+                    b.Navigation("Inquilinos");
+                });
+
+            modelBuilder.Entity("RentaFacil.API.Models.Pago", b =>
+                {
+                    b.Navigation("DetalleServicios");
                 });
 #pragma warning restore 612, 618
         }

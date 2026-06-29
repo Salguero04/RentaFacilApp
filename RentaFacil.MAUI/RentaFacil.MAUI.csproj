@@ -79,6 +79,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RentaFacil.Shared\RentaFacil.Shared.csproj" />
+      <ProjectReference Include="..\RentaFacil.UI\RentaFacil.UI.csproj" />
     </ItemGroup>
 
 </Project>

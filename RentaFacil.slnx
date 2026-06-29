@@ -1,9 +1,11 @@
 <Solution>
   <Project Path="RentaFacil.Shared\RentaFacil.Shared.csproj" />
   <Project Path="RentaFacil.API\RentaFacil.API.csproj" />
+  <Project Path="RentaFacil.UI\RentaFacil.UI.csproj" />
   <Project Path="RentaFacil.MAUI\RentaFacil.MAUI.csproj">
     <BuildDependency Project="RentaFacil.API\RentaFacil.API.csproj" />
     <Deploy Solution="Debug|*" />
   </Project>
+  <Project Path="RentaFacil.Web\RentaFacil.Web.csproj" />
   <Project Path="RentaFacil.Tests\RentaFacil.Tests.csproj" />
 </Solution>

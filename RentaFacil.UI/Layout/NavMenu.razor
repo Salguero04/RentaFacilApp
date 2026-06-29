@@ -1,0 +1,103 @@
+@using RentaFacil.UI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="sidebar-custom bg-white h-100 d-flex flex-column" style="overflow-y: auto; overflow-x: hidden;">
+    <!-- Header con degradado -->
+    <div class="sidebar-header position-relative" style="background: linear-gradient(135deg, #1b6ec2 0%, #2a7587 100%); border-radius: 0 0 20px 20px; padding: 1.75rem 1rem 1.25rem 1rem;">
+        <div class="profile-info text-center">
+            <div class="profile-avatar mb-2 d-inline-flex align-items-center justify-content-center border border-2 border-white rounded-circle shadow-sm" style="background: rgba(255,255,255,0.2); width: 3.5rem; height: 3.5rem;">
+                <i class="bi bi-person-fill fs-1 text-white" style="line-height: 1;"></i>
+            </div>
+            <div class="profile-text">
+                <h5 class="text-white mb-0 fw-bold">@NombreUsuario</h5>
+                <small class="text-white-50 d-block">@RolUsuario</small>
+                <small class="text-white-50 d-block mt-1" style="font-size: 0.7rem;">v2.0.4</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Links -->
+    <div class="nav-scrollable mt-3 flex-grow-1 px-3">
+        <nav class="nav flex-column sidebar-nav gap-2">
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="" Match="NavLinkMatch.All" @onclick="AlNavegar">
+                <i class="bi bi-house-door-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inicio / Estado</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inquilinos" @onclick="AlNavegar">
+                <i class="bi bi-person-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inquilinos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inmuebles" @onclick="AlNavegar">
+                <i class="bi bi-shop fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inmuebles</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="contratos" @onclick="AlNavegar">
+                <i class="bi bi-file-earmark-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Contratos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="suscripcion" @onclick="AlNavegar">
+                <i class="bi bi-alarm fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Suscripción</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="medidores" @onclick="AlNavegar">
+                <i class="bi bi-speedometer2 fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Medidores</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="ingresos" @onclick="AlNavegar">
+                <i class="bi bi-cash-stack fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Ingresos</span>
+            </NavLink>
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="opinion" @onclick="AlNavegar">
+                <i class="bi bi-chat-left-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Opinión</span>
+            </NavLink>
+
+            <hr class="my-2 text-muted opacity-25" />
+
+            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="soporte" @onclick="AlNavegar">
+                <i class="bi bi-headset fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Soporte / Ayuda</span>
+            </NavLink>
+
+            <a class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="javascript:void(0)" @onclick="CerrarSesion">
+                <i class="bi bi-box-arrow-right fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Cerrar Sesión</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Bottom Delete Account -->
+    <div class="sidebar-bottom px-3 pb-4 pt-2 mt-auto">
+        <a class="nav-link text-danger fw-bold px-3 d-flex align-items-center" href="javascript:void(0)" @onclick="AlNavegar">
+            <i class="bi bi-trash-fill fs-5 me-3"></i> <span class="fs-6 sidebar-bottom-label">Eliminar mi cuenta</span>
+        </a>
+    </div>
+</div>
+
+<style>
+    .nav-link.active {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        color: #0d6efd !important;
+    }
+    .nav-link.active i {
+        color: #0d6efd !important;
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
+    // Datos del usuario autenticado. El nombre real aún no se persiste en el cliente
+    // (AuthService solo guarda token + rol), por eso se muestra un texto genérico + el rol.
+    private string NombreUsuario => "Mi cuenta";
+    private string RolUsuario => string.IsNullOrWhiteSpace(Auth.Rol) ? "Sesión activa" : Auth.Rol!;
+
+    private async Task AlNavegar()
+    {
+        if (OnNavigate.HasDelegate)
+        {
+            await OnNavigate.InvokeAsync();
+        }
+    }
+
+    private async Task CerrarSesion()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/login");
+        if (OnNavigate.HasDelegate)
+        {
+            await OnNavigate.InvokeAsync();
+        }
+    }
+}

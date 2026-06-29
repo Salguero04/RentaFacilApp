@@ -29,6 +29,8 @@ public class Pago : IAuditable
 
     public Contrato Contrato { get; set; } = null!;
 
+    public ICollection<DetalleServicioPago> DetalleServicios { get; set; } = new List<DetalleServicioPago>();
+
     public int UsuarioId { get; set; }
 
     public int? CreadoPorId { get; set; }

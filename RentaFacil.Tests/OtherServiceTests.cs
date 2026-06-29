@@ -51,6 +51,7 @@ public class ContratoServiceTests
     private readonly Mock<IContratoRepository> _repositoryMock;
     private readonly Mock<IInquilinoRepository> _inquilinoRepositoryMock;
     private readonly Mock<IUnidadRepository> _unidadRepositoryMock;
+    private readonly Mock<INotificacionPendienteRepository> _notificacionRepositoryMock;
     private readonly ContratoService _service;
 
     public ContratoServiceTests()
@@ -58,7 +59,8 @@ public class ContratoServiceTests
         _repositoryMock = new Mock<IContratoRepository>();
         _inquilinoRepositoryMock = new Mock<IInquilinoRepository>();
         _unidadRepositoryMock = new Mock<IUnidadRepository>();
-        _service = new ContratoService(_repositoryMock.Object, _inquilinoRepositoryMock.Object, _unidadRepositoryMock.Object);
+        _notificacionRepositoryMock = new Mock<INotificacionPendienteRepository>();
+        _service = new ContratoService(_repositoryMock.Object, _inquilinoRepositoryMock.Object, _unidadRepositoryMock.Object, _notificacionRepositoryMock.Object);
     }
 
     [Fact]

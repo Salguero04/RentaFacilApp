@@ -1,0 +1,115 @@
+@page "/contratos"
+@using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Globalization
+@using RentaFacil.UI.Services
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Mis Contratos</h3>
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem; opacity: 0.85;">
+        <i class="bi bi-search" style="font-size: 1.4rem;"></i>
+    </button>
+</div>
+
+<div class="bg-white rounded-top-4 p-3" style="min-height: 80vh; position: relative;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando contratos...</em></p>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger m-3">@errorMessage</div>
+    }
+    else
+    {
+        <div class="text-center mb-4 mt-2">
+            <span class="bg-primary bg-opacity-10 text-primary fw-bold px-4 py-2 rounded-pill">Total: @contratos.Count Contratos</span>
+        </div>
+
+        @if (!contratos.Any())
+        {
+            <div class="text-center text-muted mt-5">
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
+                <p>No tienes contratos activos aún.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var c in contratos)
+            {
+                <div class="card shadow-sm border-0 mb-3 rounded-4" style="cursor: pointer;" @onclick="() => EditarContrato(c.Id)">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge @(c.Activo ? "bg-success" : "bg-danger") rounded-pill">
+                                @(c.Activo ? "ACTIVO" : "INACTIVO")
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted fw-bold">Día pago: @c.DiaPago</small>
+                                <i class="bi bi-pencil text-info"></i>
+                            </div>
+                        </div>
+                        <h6 class="fw-bold mb-1">Contrato #@c.Id</h6>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted"><i class="bi bi-calendar-check me-1"></i>Inicio: @c.FechaInicio.ToString("dd/MM/yy")</small>
+                            <small class="text-muted"><i class="bi bi-calendar-x me-1"></i>Fin: @c.FechaFin.ToString("dd/MM/yy")</small>
+                        </div>
+                        <hr class="my-2 opacity-25" />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-secondary small">Monto mensual:</span>
+                            <span class="fw-bold text-primary fs-5">@MoneyFormatter.Mostrar(c.Monto)</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <button class="btn btn-primary btn-lg rounded-circle shadow position-fixed" style="bottom: 2rem; right: 2rem; width: 60px; height: 60px; z-index: 1000;" @onclick="NuevoContrato">
+            <i class="bi bi-plus-lg fs-3"></i>
+        </button>
+    }
+</div>
+
+@code {
+    private List<ContratoDto> contratos = new();
+    private bool cargando = true;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            contratos = await Api.GetContratosAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar contratos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void NuevoContrato()
+    {
+        Nav.NavigateTo("/contratos/nuevo");
+    }
+
+    private void EditarContrato(int id)
+    {
+        Nav.NavigateTo($"/contratos/editar/{id}");
+    }
+
+    [CascadingParameter] public MainLayout Layout { get; set; } = null!;
+
+    private void AbrirMenu()
+    {
+        Layout?.ToggleSidebar();
+    }
+}

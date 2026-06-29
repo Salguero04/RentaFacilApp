@@ -1,0 +1,157 @@
+@page "/inmuebles/nuevo"
+@page "/inmuebles/editar/{Id:int}"
+@using RentaFacil.Shared.Models
+@using RentaFacil.Shared.Enums
+@using RentaFacil.UI.Services
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;" @onclick="GoBack">
+        <i class="bi bi-arrow-left fs-4"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@(Id.HasValue ? "Editar Inmueble" : "Nuevo Inmueble")</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-4 shadow-sm" style="min-height: 80vh;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando datos...</em></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        <EditForm Model="this" OnValidSubmit="Guardar">
+            <div class="mb-4 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="bi @(tipo == TipoInmueble.Unico ? "bi-house-fill" : "bi-building") fs-2"></i>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary">Nombre de la propiedad</label>
+                <InputText @bind-Value="nombre" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: Edificio Central, Casa Norte" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary">Dirección / Ubicación</label>
+                <InputText @bind-Value="direccion" class="form-control form-control-lg rounded-3 shadow-sm" placeholder="Ej: Av. Principal 123" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary">Tipo de Propiedad</label>
+                <InputSelect @bind-Value="tipo" class="form-select form-select-lg rounded-3 shadow-sm">
+                    <option value="@TipoInmueble.Unico">Único (Casa / Departamento independiente)</option>
+                    <option value="@TipoInmueble.Multiple">Múltiple (Edificio, Complejo, Galería)</option>
+                </InputSelect>
+            </div>
+
+            @if (tipo == TipoInmueble.Unico)
+            {
+                <div class="mb-4 scale-in">
+                    <label class="form-label fw-bold text-secondary">Monto de Renta Mensual ($)</label>
+                    <div class="input-group input-group-lg shadow-sm">
+                        <span class="input-group-text bg-light text-muted">$</span>
+                        <InputNumber @bind-Value="montoRenta" class="form-control rounded-end-3" placeholder="0.00" />
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex flex-column gap-2 mt-5">
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Inmueble
+                </button>
+                <button type="button" class="btn btn-light btn-lg rounded-pill py-3 fw-bold border" @onclick="GoBack">
+                    Cancelar
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+<style>
+    .scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+    }
+    @@keyframes scaleIn {
+        from { transform: scale(0.98); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+</style>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "tipo")] public string? TipoParam { get; set; }
+
+    private string nombre = "";
+    private string direccion = "";
+    private TipoInmueble tipo = TipoInmueble.Unico;
+    private decimal montoRenta;
+    private bool cargando = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            cargando = true;
+            try
+            {
+                var inv = await Api.GetInmuebleByIdAsync(Id.Value);
+                if (inv != null)
+                {
+                    nombre = inv.Nombre;
+                    direccion = inv.Direccion;
+                    tipo = inv.Tipo;
+                    montoRenta = inv.MontoRenta;
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al cargar inmueble: {ex.Message}";
+            }
+            finally
+            {
+                cargando = false;
+            }
+        }
+        else if (!string.IsNullOrEmpty(TipoParam))
+        {
+            if (Enum.TryParse<TipoInmueble>(TipoParam, true, out var parsedTipo))
+            {
+                tipo = parsedTipo;
+            }
+        }
+    }
+
+    private async Task Guardar()
+    {
+        errorMessage = "";
+        var dto = new CrearInmuebleDto(nombre, direccion, tipo, montoRenta);
+        try
+        {
+            if (Id.HasValue)
+            {
+                await Api.UpdateInmuebleAsync(Id.Value, dto);
+            }
+            else
+            {
+                await Api.CrearInmuebleAsync(dto);
+            }
+            Nav.NavigateTo("/inmuebles");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/inmuebles");
+    }
+}
