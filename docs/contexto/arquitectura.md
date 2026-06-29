@@ -17,7 +17,7 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 ## Mapa de carpetas
 - `RentaFacil.Shared/` → DTOs (`Models/*Dto.cs`, records), enums (`Enums/TipoInmueble.cs`, `Enums/FrecuenciaPago.cs`) y `Globalization/MoneyFormatter`, compartidos por API y clientes. Sin lógica de negocio.
 - `RentaFacil.UI/` → **Razor Class Library con la UI compartida entre MAUI y Web.** `Pages/*.razor` (todas las pantallas), `Layout/*` (MainLayout/NavMenu/LoginLayout), `Services/` (`ApiClient`, `AuthService`, `AuthHeaderHandler`), `ViewModels/EstadoInquilinoViewModel.cs`, `Abstractions/` (`ITokenStore`, `IDispositivoServicio` — las implementa cada host), y `_Marker.cs` (clase marcador para `Router.AdditionalAssemblies`). No registra DI ni define la URL de la API; eso lo hace cada host.
-- `RentaFacil.API/Models/` → entidades EF Core (`Inquilino`, `Inmueble`, `Unidad`, `Contrato`, `Pago`)
+- `RentaFacil.API/Models/` → entidades EF Core (`Inquilino`, `Inmueble`, `Unidad`, `Contrato`, `Pago`, `Recordatorio`, `Medidor`, `MedidorInquilino`, `FacturaMedidor`, `DetalleServicioPago`, `NotificacionPendiente`)
 - `RentaFacil.API/Data/` → solo `AppDbContext.cs`
 - `RentaFacil.API/Migrations/` → migraciones EF Core (en la raíz del proyecto, NO dentro de `Data/` — ojo: los docs de plan dibujan `Data/Migrations/`, pero el código real las tiene aquí)
 - `RentaFacil.API/Repositories/` → acceso a datos, un repo + interfaz por entidad (`IInquilinoRepository`, etc.); `OtherRepositories.cs`/`IOtherRepositories.cs` agrupan Contrato/Pago
@@ -34,25 +34,29 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 Una pantalla Blazor (`RentaFacil.UI/Pages/*.razor`) llama a `ApiClient` (HttpClient cuyo `BaseAddress` lo configura cada host: MAUI vía `ApiConfig.BaseUrl`, Web vía `Program.cs`) → la request HTTP, con el Bearer token adjuntado por `AuthHeaderHandler`, llega a un Controller de `RentaFacil.API` → el Controller delega en un Service (lógica de negocio) → el Service usa un Repository (EF Core) → `AppDbContext` lee/escribe en SQL Server. La respuesta vuelve como un DTO de `RentaFacil.Shared` que la página Blazor renderiza directo (sin un ViewModel intermedio salvo `EstadoInquilinoViewModel`). La misma página corre idéntica en MAUI (WebView nativo) y en el navegador (WASM).
 
 ## Esquema de base de datos
-Code-First con EF Core sobre SQL Server (local y producción), montos `decimal(18,2)`. Las tablas viven en 4 schemas organizacionales fijos (no por tenant): `auth` (Usuarios), `renta` (Inquilino/Inmueble/Unidad/Contrato/Pago + ServicioContrato/CostoServicio/DetalleServicioPago, cada fila filtrada por `UsuarioId`), `config` (catálogos globales + `__EFMigrationsHistory`) y `audit` (hoy la auditoría vive como columnas `IAuditable` en `renta.*`). El esquema, las relaciones, los schemas y los índices de `UsuarioId` se definen en `AppDbContext.OnModelCreating` y se materializan en `RentaFacil.API/Migrations/` (migración `InitialSqlServer`, luego `ServiciosMedidores`) — esa es la fuente de verdad del DDL. Para detalle campo por campo de cada entidad ver `glosario.md`.
+Code-First con EF Core sobre SQL Server (local y producción), montos `decimal(18,2)`. Las tablas viven en 4 schemas organizacionales fijos (no por tenant): `auth` (Usuarios), `renta` (Inquilino/Inmueble/Unidad/Contrato/Pago/Recordatorio + Medidor/MedidorInquilino/FacturaMedidor/DetalleServicioPago/NotificacionPendiente, cada fila filtrada por `UsuarioId`), `config` (catálogos globales + `__EFMigrationsHistory`) y `audit` (hoy la auditoría vive como columnas `IAuditable` en `renta.*`). El esquema, las relaciones, los schemas y los índices de `UsuarioId` se definen en `AppDbContext.OnModelCreating` y se materializan en `RentaFacil.API/Migrations/` (migración `InitialSqlServer`, luego `ServiciosMedidores` y `MedidoresRediseno` — esta última dropea las tablas de `ServiciosMedidores` y las reemplaza, ver `decisiones.md`) — esa es la fuente de verdad del DDL. Para detalle campo por campo de cada entidad ver `glosario.md`.
 
 ```
-Inquilinos ||--o{ Contratos          : posee     (FK InquilinoId, borrado RESTRICT)
-Inmuebles  ||--o{ Unidades           : contiene  (FK InmuebleId,  borrado CASCADE)
-Inmuebles  ||--o{ CostosServicio     : planillas (FK InmuebleId,  borrado CASCADE)
-Unidades   ||--o{ Contratos          : alquila   (FK UnidadId,    borrado RESTRICT)
-Contratos  ||--o{ Pagos              : recibe    (FK ContratoId,  borrado CASCADE)
-Contratos  ||--o{ ServiciosContrato  : incluye   (FK ContratoId,  borrado CASCADE)
-Pagos      ||--o{ DetallesServicioPago : desglosa (FK PagoId,     borrado CASCADE)
+Inquilinos ||--o{ Contratos           : posee      (FK InquilinoId, borrado RESTRICT)
+Inquilinos ||--o{ Recordatorios       : recuerda    (FK InquilinoId, borrado CASCADE)
+Inquilinos ||--o{ MedidoresInquilino  : se vincula  (FK InquilinoId, borrado RESTRICT)
+Inmuebles  ||--o{ Unidades            : contiene    (FK InmuebleId,  borrado CASCADE)
+Inmuebles  ||--o{ Medidores           : mide        (FK InmuebleId,  borrado CASCADE)
+Unidades   ||--o{ Contratos           : alquila     (FK UnidadId,    borrado RESTRICT)
+Contratos  ||--o{ Pagos               : recibe      (FK ContratoId,  borrado CASCADE)
+Pagos      ||--o{ DetallesServicioPago : desglosa   (FK PagoId,      borrado CASCADE)
+Medidores  ||--o{ MedidoresInquilino  : vincula     (FK MedidorId,   borrado CASCADE)
+Medidores  ||--o{ FacturasMedidor     : planillas   (FK MedidorId,   borrado CASCADE)
 ```
 
 Reglas de borrado (definidas en `OnModelCreating`):
-- Borrar un **Inmueble** elimina en cascada sus **Unidades** y sus **CostosServicio** (planillas).
-- Borrar un **Contrato** elimina en cascada sus **Pagos** y sus **ServiciosContrato**.
+- Borrar un **Inmueble** elimina en cascada sus **Unidades** y sus **Medidores**.
+- Borrar un **Contrato** elimina en cascada sus **Pagos**. `MedidorInquilino.ContratoId` es informativo (sin FK estricta), igual que `Recordatorio.ContratoId`.
 - Borrar un **Pago** elimina en cascada sus **DetallesServicioPago**.
-- NO se puede borrar un **Inquilino** con Contratos ni una **Unidad** con Contratos (RESTRICT) — primero hay que quitar/cerrar los contratos.
+- Borrar un **Medidor** elimina en cascada sus **MedidoresInquilino** (vínculos) y **FacturasMedidor** (planillas).
+- NO se puede borrar un **Inquilino** con Contratos ni una **Unidad** con Contratos (RESTRICT) — primero hay que quitar/cerrar los contratos. Tampoco un **Inquilino** con `MedidorInquilino` activos (RESTRICT).
 - `Inmueble.MontoRenta` solo aplica a `Tipo == Unico`; en `Multiple` la renta vive en cada `Unidad`.
-- `UsuarioId` está en las 8 entidades de `renta.*` y **sí** se usa para filtrar cada lectura/escritura en los Repositories (IDOR/BOLA cerrado, indexado) — ver `errores-conocidos.md`. (`DetalleServicioPago` y `ServicioContrato` siempre se acceden vía su padre, ya filtrado por `UsuarioId`.)
+- `UsuarioId` está en las 11 entidades de `renta.*` (Inquilino/Inmueble/Unidad/Contrato/Pago/Recordatorio/Medidor/MedidorInquilino/FacturaMedidor/DetalleServicioPago/NotificacionPendiente) y **sí** se usa para filtrar cada lectura/escritura en los Repositories (IDOR/BOLA cerrado, indexado) — ver `errores-conocidos.md`. (`DetalleServicioPago` siempre se accede vía su `Pago` padre, ya filtrado por `UsuarioId`.)
 
 ## Lo que NO existe (y no hay que crear sin que lo pidan)
 - No hay caché de ningún tipo.
