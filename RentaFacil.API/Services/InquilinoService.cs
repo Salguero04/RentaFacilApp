@@ -42,17 +42,17 @@ public class InquilinoService : IInquilinoService
         return MapToDto(created);
     }
 
-    public async Task UpdateAsync(int id, CrearInquilinoDto dto, int usuarioId)
+    public async Task<bool> UpdateAsync(int id, CrearInquilinoDto dto, int usuarioId)
     {
         var inquilino = await _repository.GetByIdAsync(id, usuarioId);
-        if (inquilino != null)
-        {
-            inquilino.NombreCompleto = dto.NombreCompleto;
-            inquilino.Identificacion = dto.Identificacion;
-            inquilino.Telefono = dto.Telefono;
-            inquilino.FotoUrl = dto.FotoUrl;
-            await _repository.UpdateAsync(inquilino);
-        }
+        if (inquilino == null) return false;
+
+        inquilino.NombreCompleto = dto.NombreCompleto;
+        inquilino.Identificacion = dto.Identificacion;
+        inquilino.Telefono = dto.Telefono;
+        inquilino.FotoUrl = dto.FotoUrl;
+        await _repository.UpdateAsync(inquilino);
+        return true;
     }
 
     public async Task DeleteAsync(int id, int usuarioId)

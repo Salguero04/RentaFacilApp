@@ -41,7 +41,8 @@ public class InquilinosController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] CrearInquilinoDto dto)
     {
-        await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
+        var actualizado = await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
+        if (!actualizado) return NotFound();
         return NoContent();
     }
 
