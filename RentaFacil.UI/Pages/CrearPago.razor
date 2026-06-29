@@ -1,4 +1,5 @@
 @page "/crearpago/{ContratoId:int}"
+@page "/crearpago/{ContratoId:int}/{Id:int}"
 @using RentaFacil.Shared.Models
 @using RentaFacil.Shared.Enums
 @using RentaFacil.Shared.Globalization
@@ -13,7 +14,7 @@
             @onclick="AbrirMenu" aria-label="Abrir menú">
         <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
     </button>
-    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Realizar Pago</h3>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">@(Id.HasValue ? "Editar Pago" : "Realizar Pago")</h3>
     <div style="width: 2.5rem; height: 2.5rem;"></div>
 </div>
 
@@ -23,6 +24,10 @@
 }
 else
 {
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
     <div class="card estado-card mb-4 shadow-sm border-0">
         <div class="card-body">
             <h5 class="card-title text-center fw-bold mb-3">@estado.Inquilino.NombreCompleto.ToUpper()</h5>
@@ -164,12 +169,15 @@ else
         <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow" style="width: 70px; height: 70px;">
             <i class="bi bi-check-lg fs-1"></i>
         </div>
-        <h4 class="fw-bold text-success mb-2">Pago Realizado</h4>
-        <p class="text-muted mb-4">El pago se ha registrado correctamente en el sistema.</p>
-        
+        <h4 class="fw-bold text-success mb-2">@(Id.HasValue ? "Pago Actualizado" : "Pago Realizado")</h4>
+        <p class="text-muted mb-4">@(Id.HasValue ? "Los cambios se guardaron correctamente." : "El pago se ha registrado correctamente en el sistema.")</p>
+
         <div class="d-grid gap-2">
             <button class="btn btn-outline-secondary py-2 fw-bold rounded-pill" @onclick="GoBack">Cerrar</button>
-            <button class="btn btn-success py-2 fw-bold rounded-pill" @onclick="VerRecibo">Ver recibo</button>
+            @if (pagoGuardado != null)
+            {
+                <button class="btn btn-success py-2 fw-bold rounded-pill" @onclick="VerRecibo">Ver recibo</button>
+            }
         </div>
     </div>
 }
@@ -191,13 +199,15 @@ else
 
 @code {
     [Parameter] public int ContratoId { get; set; }
-    
+    [Parameter] public int? Id { get; set; }
+
     private EstadoInquilinoViewModel? estado;
     private decimal montoAPagar;
     private bool entregarFactura;
     private string observaciones = "";
     private bool mostrarModalConfirmacion = false;
     private PagoDto? pagoGuardado;
+    private string errorMessage = "";
 
     // ── Servicios del contrato: calculados desde los medidores vinculados ──
     private List<DetalleServicioPagoDto> cobrosServicios = new();
@@ -233,6 +243,21 @@ else
             cobrosServicios = await Api.GetCobrosContratoAsync(ContratoId, hoy.Month, hoy.Year);
 
             montoAPagar = TotalAPagar;
+
+            if (Id.HasValue)
+            {
+                var pagos = await Api.GetPagosAsync();
+                var pago = pagos.FirstOrDefault(p => p.Id == Id.Value);
+                if (pago != null)
+                {
+                    montoAPagar = pago.ACuenta;
+                    entregarFactura = pago.Facturado;
+                }
+                else
+                {
+                    errorMessage = "No se encontró el pago a editar.";
+                }
+            }
         }
     }
 
@@ -240,11 +265,34 @@ else
     {
         if (estado == null) return;
 
+        errorMessage = "";
         var detalles = cobrosServicios.Where(c => c.Monto != 0).ToList();
 
         var dto = new CrearPagoDto(ContratoId, estado.Contrato.Monto, montoAPagar, TotalServicios, DateTime.Now, estado.PeriodoActual, entregarFactura, detalles);
-        pagoGuardado = await Api.CrearPagoAsync(dto);
-        mostrarModalConfirmacion = true;
+
+        try
+        {
+            if (Id.HasValue)
+            {
+                bool ok = await Api.ActualizarPagoAsync(Id.Value, dto);
+                if (ok)
+                    mostrarModalConfirmacion = true;
+                else
+                    errorMessage = "No se pudo actualizar el pago. Verifica los datos ingresados.";
+            }
+            else
+            {
+                pagoGuardado = await Api.CrearPagoAsync(dto);
+                if (pagoGuardado != null)
+                    mostrarModalConfirmacion = true;
+                else
+                    errorMessage = "No se pudo registrar el pago. Verifica los datos ingresados.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar el pago: {ex.Message}";
+        }
     }
 
     private void VerRecibo()

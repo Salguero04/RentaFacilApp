@@ -48,6 +48,9 @@ else
                     {
                         <span class="badge bg-secondary small">Sin Factura</span>
                     }
+                    <button class="btn btn-link btn-sm text-decoration-none p-0 d-block mt-1" @onclick="() => EditarPago(pago)">
+                        <i class="bi bi-pencil-square"></i> Editar
+                    </button>
                 </div>
             </div>
         }
@@ -69,5 +72,10 @@ else
     private void AbrirMenu()
     {
         Layout?.ToggleSidebar();
+    }
+
+    private void EditarPago(PagoDto pago)
+    {
+        Nav.NavigateTo($"/crearpago/{ContratoId}/{pago.Id}");
     }
 }
