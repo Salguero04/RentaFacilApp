@@ -199,7 +199,7 @@ using (var scope = app.Services.CreateScope())
 
         if (!context.Inquilinos.Any())
         {
-            var inq = new RentaFacil.API.Models.Inquilino { NombreCompleto = "Mario Salguero (Dummy)", Identificacion = "1234567", Telefono = "555-0100", FechaRegistro = DateTime.Now, UsuarioId = admin.Id };
+            var inq = new RentaFacil.API.Models.Inquilino { NombreCompleto = "Mario Salguero (Dummy)", Identificacion = "1710034065", Telefono = "555-0100", FechaRegistro = DateTime.Now, UsuarioId = admin.Id };
             context.Inquilinos.Add(inq);
             context.SaveChanges();
 
