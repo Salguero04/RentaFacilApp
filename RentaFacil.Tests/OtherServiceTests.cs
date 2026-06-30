@@ -178,3 +178,59 @@ public class PagoServiceTests
         existente.Facturado.Should().BeTrue();
     }
 }
+
+public class RecordatorioServiceTests
+{
+    private readonly Mock<IRecordatorioRepository> _repositoryMock;
+    private readonly Mock<IInquilinoRepository> _inquilinoRepositoryMock;
+    private readonly RecordatorioService _service;
+
+    public RecordatorioServiceTests()
+    {
+        _repositoryMock = new Mock<IRecordatorioRepository>();
+        _inquilinoRepositoryMock = new Mock<IInquilinoRepository>();
+        _service = new RecordatorioService(_repositoryMock.Object, _inquilinoRepositoryMock.Object);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConRecordatorioYInquilinoDelMismoUsuario_RetornaTrue()
+    {
+        var existente = new Recordatorio { Id = 1, InquilinoId = 1, UsuarioId = 1, Detalle = "Pago pendiente", FechaProgramada = DateTime.Now };
+        _repositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(existente);
+        _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(new Inquilino { Id = 1, UsuarioId = 1 });
+        var nuevaFecha = DateTime.Now.AddDays(3);
+        var dto = new CrearRecordatorioDto(1, null, "Detalle actualizado", nuevaFecha);
+
+        var actualizado = await _service.UpdateAsync(1, dto, 1);
+
+        actualizado.Should().BeTrue();
+        existente.Detalle.Should().Be("Detalle actualizado");
+        existente.FechaProgramada.Should().Be(nuevaFecha);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConRecordatorioInexistente_RetornaFalse()
+    {
+        _repositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync((Recordatorio?)null);
+        var dto = new CrearRecordatorioDto(1, null, "Detalle actualizado", DateTime.Now);
+
+        var actualizado = await _service.UpdateAsync(1, dto, 1);
+
+        actualizado.Should().BeFalse();
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Recordatorio>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConInquilinoDeOtroUsuario_RetornaFalse()
+    {
+        var existente = new Recordatorio { Id = 1, InquilinoId = 1, UsuarioId = 1, Detalle = "Pago pendiente", FechaProgramada = DateTime.Now };
+        _repositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(existente);
+        _inquilinoRepositoryMock.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync((Inquilino?)null);
+        var dto = new CrearRecordatorioDto(1, null, "Detalle actualizado", DateTime.Now);
+
+        var actualizado = await _service.UpdateAsync(1, dto, 1);
+
+        actualizado.Should().BeFalse();
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Recordatorio>()), Times.Never);
+    }
+}
