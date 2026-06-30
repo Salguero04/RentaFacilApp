@@ -177,6 +177,12 @@ public class ApiClient
         return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<RecordatorioDto>() : null;
     }
 
+    public async Task<bool> UpdateRecordatorioAsync(int id, CrearRecordatorioDto dto)
+    {
+        var response = await _http.PutAsJsonAsync($"api/recordatorios/{id}", dto);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<bool> DeleteRecordatorioAsync(int id)
     {
         var response = await _http.DeleteAsync($"api/recordatorios/{id}");

@@ -23,6 +23,8 @@ public interface IPagoRepository
 public interface IRecordatorioRepository
 {
     Task<IEnumerable<Recordatorio>> GetAllAsync(int usuarioId);
+    Task<Recordatorio?> GetByIdAsync(int id, int usuarioId);
     Task<Recordatorio> AddAsync(Recordatorio recordatorio);
+    Task UpdateAsync(Recordatorio recordatorio);
     Task DeleteAsync(int id, int usuarioId);
 }

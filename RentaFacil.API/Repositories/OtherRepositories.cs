@@ -69,11 +69,17 @@ public class RecordatorioRepository : IRecordatorioRepository
     public RecordatorioRepository(AppDbContext context) => _context = context;
 
     public async Task<IEnumerable<Recordatorio>> GetAllAsync(int usuarioId) => await _context.Recordatorios.Where(r => r.UsuarioId == usuarioId).ToListAsync();
+    public async Task<Recordatorio?> GetByIdAsync(int id, int usuarioId) => await _context.Recordatorios.FirstOrDefaultAsync(r => r.Id == id && r.UsuarioId == usuarioId);
     public async Task<Recordatorio> AddAsync(Recordatorio recordatorio)
     {
         _context.Recordatorios.Add(recordatorio);
         await _context.SaveChangesAsync();
         return recordatorio;
+    }
+    public async Task UpdateAsync(Recordatorio recordatorio)
+    {
+        _context.Recordatorios.Update(recordatorio);
+        await _context.SaveChangesAsync();
     }
     public async Task DeleteAsync(int id, int usuarioId)
     {

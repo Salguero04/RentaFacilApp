@@ -103,6 +103,14 @@ public class RecordatoriosController : ControllerBase
         return Ok(res);
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CrearRecordatorioDto dto)
+    {
+        var actualizado = await _service.UpdateAsync(id, dto, User.ObtenerUsuarioId());
+        if (!actualizado) return NotFound();
+        return NoContent();
+    }
+
     [HttpDelete("{id}")] public async Task<IActionResult> Delete(int id) { await _service.DeleteAsync(id, User.ObtenerUsuarioId()); return NoContent(); }
 }
 

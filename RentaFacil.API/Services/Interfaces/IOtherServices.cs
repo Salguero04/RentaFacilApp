@@ -24,5 +24,6 @@ public interface IRecordatorioService
 {
     Task<IEnumerable<RecordatorioDto>> GetAllAsync(int usuarioId);
     Task<RecordatorioDto?> CrearAsync(CrearRecordatorioDto dto, int usuarioId);
+    Task<bool> UpdateAsync(int id, CrearRecordatorioDto dto, int usuarioId);
     Task DeleteAsync(int id, int usuarioId);
 }

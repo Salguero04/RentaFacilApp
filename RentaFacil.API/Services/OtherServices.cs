@@ -184,6 +184,20 @@ public class RecordatorioService : IRecordatorioService
         return MapToDto(created);
     }
 
+    public async Task<bool> UpdateAsync(int id, CrearRecordatorioDto dto, int usuarioId)
+    {
+        var recordatorio = await _repository.GetByIdAsync(id, usuarioId);
+        if (recordatorio == null) return false;
+
+        var inquilino = await _inquilinoRepository.GetByIdAsync(dto.InquilinoId, usuarioId);
+        if (inquilino == null) return false;
+
+        recordatorio.InquilinoId = dto.InquilinoId; recordatorio.ContratoId = dto.ContratoId;
+        recordatorio.Detalle = dto.Detalle; recordatorio.FechaProgramada = dto.FechaProgramada;
+        await _repository.UpdateAsync(recordatorio);
+        return true;
+    }
+
     public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
 
     private static RecordatorioDto MapToDto(Recordatorio r) => new(r.Id, r.InquilinoId, r.ContratoId, r.Detalle, r.FechaProgramada);
