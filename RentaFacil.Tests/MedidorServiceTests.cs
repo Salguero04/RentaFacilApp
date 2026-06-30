@@ -110,6 +110,36 @@ public class MedidorServiceTests
     }
 
     [Fact]
+    public async Task ActualizarVinculo_VinculoExistenteYEntidadesPropias_RetornaTrue()
+    {
+        var vinculo = new MedidorInquilino { Id = 5, MedidorId = 1, InquilinoId = 2, UsuarioId = 1, MetodoCobro = MetodoCobroInquilino.Manual, MontoFijo = 10 };
+        var medidor = new Medidor { Id = 1, UsuarioId = 1, Nombre = "Med", Inquilinos = new List<MedidorInquilino>(), Inmueble = new Inmueble { Nombre = "Edif" } };
+        var inquilino = new Inquilino { Id = 2, UsuarioId = 1, NombreCompleto = "Inquilino Dos" };
+        _vinculoRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(vinculo);
+        _medidorRepo.Setup(r => r.GetByIdAsync(1, 1)).ReturnsAsync(medidor);
+        _inquilinoRepo.Setup(r => r.GetByIdAsync(2, 1)).ReturnsAsync(inquilino);
+        _vinculoRepo.Setup(r => r.UpdateAsync(It.IsAny<MedidorInquilino>())).Returns(Task.CompletedTask);
+
+        var dto = new RentaFacil.Shared.Models.CrearMedidorInquilinoDto(1, 2, null, MetodoCobroInquilino.Tarifa, 0, 100, 150);
+        var resultado = await _service.ActualizarVinculoAsync(5, dto, 1);
+
+        resultado.Should().BeTrue();
+        _vinculoRepo.Verify(r => r.UpdateAsync(It.Is<MedidorInquilino>(v => v.LecturaActual == 150 && v.MetodoCobro == MetodoCobroInquilino.Tarifa)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActualizarVinculo_VinculoNoExiste_RetornaFalse()
+    {
+        _vinculoRepo.Setup(r => r.GetByIdAsync(99, 1)).ReturnsAsync((MedidorInquilino?)null);
+
+        var dto = new RentaFacil.Shared.Models.CrearMedidorInquilinoDto(1, 2, null, MetodoCobroInquilino.Manual, 20, 0, 0);
+        var resultado = await _service.ActualizarVinculoAsync(99, dto, 1);
+
+        resultado.Should().BeFalse();
+        _vinculoRepo.Verify(r => r.UpdateAsync(It.IsAny<MedidorInquilino>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CalcularCobrosContrato_DevuelveDetallePorTipo()
     {
         var medidor = Medidor(ModoMedidor.PorLectura, 0.5m);

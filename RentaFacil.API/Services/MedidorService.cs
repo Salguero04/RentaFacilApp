@@ -91,6 +91,26 @@ public class MedidorService : IMedidorService
         return MapVinculo(creado);
     }
 
+    public async Task<bool> ActualizarVinculoAsync(int id, CrearMedidorInquilinoDto dto, int usuarioId)
+    {
+        var vinculo = await _vinculoRepo.GetByIdAsync(id, usuarioId);
+        if (vinculo == null) return false;
+        var medidor = await _medidorRepo.GetByIdAsync(dto.MedidorId, usuarioId);
+        if (medidor == null) return false;
+        var inquilino = await _inquilinoRepo.GetByIdAsync(dto.InquilinoId, usuarioId);
+        if (inquilino == null) return false;
+
+        vinculo.MedidorId = dto.MedidorId;
+        vinculo.InquilinoId = dto.InquilinoId;
+        vinculo.ContratoId = dto.ContratoId;
+        vinculo.MetodoCobro = dto.MetodoCobro;
+        vinculo.MontoFijo = dto.MontoFijo;
+        vinculo.LecturaAnterior = dto.LecturaAnterior;
+        vinculo.LecturaActual = dto.LecturaActual;
+        await _vinculoRepo.UpdateAsync(vinculo);
+        return true;
+    }
+
     public async Task DesvincularAsync(int vinculoId, int usuarioId) => await _vinculoRepo.DeleteAsync(vinculoId, usuarioId);
 
     // ── Facturas ─────────────────────────────────────────────────────

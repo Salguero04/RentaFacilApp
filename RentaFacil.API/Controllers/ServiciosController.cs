@@ -50,6 +50,13 @@ public class MedidoresController : ControllerBase
         return Ok(res);
     }
 
+    [HttpPut("inquilinos/{id}")]
+    public async Task<IActionResult> ActualizarVinculo(int id, [FromBody] CrearMedidorInquilinoDto dto)
+    {
+        var ok = await _service.ActualizarVinculoAsync(id, dto, User.ObtenerUsuarioId());
+        return ok ? NoContent() : NotFound();
+    }
+
     [HttpDelete("inquilinos/{id}")]
     public async Task<IActionResult> Desvincular(int id)
     {

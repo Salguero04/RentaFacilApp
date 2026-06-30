@@ -142,6 +142,12 @@ public class ApiClient
         return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<MedidorInquilinoDto>() : null;
     }
 
+    public async Task<bool> ActualizarVinculoAsync(int id, CrearMedidorInquilinoDto dto)
+    {
+        var response = await _http.PutAsJsonAsync($"api/medidores/inquilinos/{id}", dto);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<bool> DesvincularInquilinoAsync(int vinculoId)
     {
         var response = await _http.DeleteAsync($"api/medidores/inquilinos/{vinculoId}");

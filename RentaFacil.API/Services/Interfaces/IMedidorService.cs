@@ -13,6 +13,7 @@ public interface IMedidorService
     // Vínculos medidor ↔ inquilino
     Task<IEnumerable<MedidorInquilinoDto>> GetVinculosAsync(int medidorId, int usuarioId);
     Task<MedidorInquilinoDto?> VincularInquilinoAsync(CrearMedidorInquilinoDto dto, int usuarioId);
+    Task<bool> ActualizarVinculoAsync(int id, CrearMedidorInquilinoDto dto, int usuarioId);
     Task DesvincularAsync(int vinculoId, int usuarioId);
 
     // Facturas / planillas

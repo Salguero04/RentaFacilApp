@@ -171,13 +171,16 @@ else
                             <span class="fw-bold d-block">@v.InquilinoNombre</span>
                             <small class="text-muted">@MetodoTexto(v.MetodoCobro)@(v.MetodoCobro == MetodoCobroInquilino.Manual ? $" · {MoneyFormatter.Mostrar(v.MontoFijo)}" : $" · lectura {v.LecturaAnterior}→{v.LecturaActual}")</small>
                         </div>
-                        <button class="btn btn-link text-danger p-0" @onclick="() => Desvincular(v)"><i class="bi bi-x-circle fs-5"></i></button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-link text-info p-0" title="Editar vínculo" @onclick="() => EditarVinculo(v)"><i class="bi bi-pencil fs-5"></i></button>
+                            <button class="btn btn-link text-danger p-0" title="Desvincular" @onclick="() => Desvincular(v)"><i class="bi bi-x-circle fs-5"></i></button>
+                        </div>
                     </div>
                 }
             </div>
         }
 
-        <h6 class="fw-bold small text-muted">AGREGAR INQUILINO</h6>
+        <h6 class="fw-bold small text-muted">@(vinculoEditId == null ? "AGREGAR INQUILINO" : "EDITAR VÍNCULO")</h6>
         <select class="form-select mb-2" @bind="vinInquilinoId">
             <option value="0" disabled>Selecciona un inquilino</option>
             @foreach (var i in inquilinos)
@@ -205,7 +208,7 @@ else
 
         <div class="row gx-3 mt-3">
             <div class="col-5"><button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill" @onclick="CerrarSheets">Cerrar</button></div>
-            <div class="col-7"><button class="btn btn-info text-white w-100 py-2 fw-bold rounded-pill" @onclick="GuardarVinculo">Vincular</button></div>
+            <div class="col-7"><button class="btn btn-info text-white w-100 py-2 fw-bold rounded-pill" @onclick="GuardarVinculo">@(vinculoEditId == null ? "Vincular" : "Guardar Cambios")</button></div>
         </div>
     </div>
 }
@@ -286,6 +289,7 @@ else
 
     // Vincular inquilino
     private bool mostrarInquilinos = false;
+    private int? vinculoEditId = null;
     private List<MedidorInquilinoDto> vinculos = new();
     private int vinInquilinoId = 0;
     private MetodoCobroInquilino vinMetodo = MetodoCobroInquilino.Prorrateo;
@@ -316,7 +320,7 @@ else
     }
 
     private void ToggleMenu(int id) => menuAbierto = menuAbierto == id ? 0 : id;
-    private void CerrarSheets() { mostrarConfigurar = false; mostrarInquilinos = false; mostrarFacturas = false; }
+    private void CerrarSheets() { mostrarConfigurar = false; mostrarInquilinos = false; mostrarFacturas = false; vinculoEditId = null; }
 
     // ── Configurar ───────────────────────────────────────────────────
     private void AbrirConfigurar(MedidorDto? m)
@@ -355,18 +359,31 @@ else
     private async Task AbrirInquilinos(MedidorDto m)
     {
         medidorSel = m;
-        vinInquilinoId = 0; vinMetodo = MetodoCobroInquilino.Prorrateo; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
+        vinculoEditId = null; vinInquilinoId = 0; vinMetodo = MetodoCobroInquilino.Prorrateo; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
         vinculos = await Api.GetVinculosMedidorAsync(m.Id);
         mostrarInquilinos = true;
+    }
+
+    private void EditarVinculo(MedidorInquilinoDto v)
+    {
+        vinculoEditId = v.Id;
+        vinInquilinoId = v.InquilinoId;
+        vinMetodo = v.MetodoCobro;
+        vinMontoFijo = v.MontoFijo;
+        vinLecturaAnterior = v.LecturaAnterior;
+        vinLecturaActual = v.LecturaActual;
     }
 
     private async Task GuardarVinculo()
     {
         if (medidorSel == null || vinInquilinoId == 0) return;
         var dto = new CrearMedidorInquilinoDto(medidorSel.Id, vinInquilinoId, null, vinMetodo, vinMontoFijo, vinLecturaAnterior, vinLecturaActual);
-        await Api.VincularInquilinoAsync(dto);
+        if (vinculoEditId == null)
+            await Api.VincularInquilinoAsync(dto);
+        else
+            await Api.ActualizarVinculoAsync(vinculoEditId.Value, dto);
         vinculos = await Api.GetVinculosMedidorAsync(medidorSel.Id);
-        vinInquilinoId = 0; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
+        vinculoEditId = null; vinInquilinoId = 0; vinMontoFijo = 0; vinLecturaAnterior = 0; vinLecturaActual = 0;
         await CargarAsync();
     }
 
