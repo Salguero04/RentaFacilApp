@@ -389,6 +389,12 @@ else
 
     private async Task Desvincular(MedidorInquilinoDto v)
     {
+        vinculoEditId = null;
+        vinInquilinoId = 0;
+        vinMetodo = MetodoCobroInquilino.Prorrateo;
+        vinMontoFijo = 0;
+        vinLecturaAnterior = 0;
+        vinLecturaActual = 0;
         await Api.DesvincularInquilinoAsync(v.Id);
         if (medidorSel != null) vinculos = await Api.GetVinculosMedidorAsync(medidorSel.Id);
         await CargarAsync();
