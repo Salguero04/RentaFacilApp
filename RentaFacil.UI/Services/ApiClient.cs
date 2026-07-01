@@ -79,6 +79,12 @@ public class ApiClient
         return response.IsSuccessStatusCode;
     }
 
+    public async Task<bool> DeleteContratoAsync(int id)
+    {
+        var response = await _http.DeleteAsync($"api/contratos/{id}");
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<List<PagoDto>> GetPagosAsync() => await _http.GetFromJsonAsync<List<PagoDto>>("api/pagos") ?? new();
     public async Task<PagoDto?> CrearPagoAsync(CrearPagoDto dto)
     {

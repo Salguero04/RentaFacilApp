@@ -43,7 +43,7 @@
         {
             @foreach (var c in contratos)
             {
-                <div class="card shadow-sm border-0 mb-3 rounded-4" style="cursor: pointer;" @onclick="() => EditarContrato(c.Id)">
+                <div class="card shadow-sm border-0 mb-3 rounded-4" style="cursor: pointer; position: relative;" @onclick="() => EditarContrato(c.Id)">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="badge @(c.Activo ? "bg-success" : "bg-danger") rounded-pill">
@@ -51,6 +51,12 @@
                             </span>
                             <div class="d-flex align-items-center gap-2">
                                 <small class="text-muted fw-bold">Día pago: @c.DiaPago</small>
+                                <button class="btn btn-link text-danger p-0 ms-2" style="font-size: 0.9rem;"
+                                        @onclick="e => AbrirConfirmacionEliminar(c, e)"
+                                        @onclick:stopPropagation
+                                        aria-label="Eliminar contrato">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
                                 <i class="bi bi-pencil text-info"></i>
                             </div>
                         </div>
@@ -75,10 +81,44 @@
     }
 </div>
 
+<!-- Modal Confirmar Eliminar -->
+@if (mostrarConfirmarEliminar && contratoSeleccionado != null)
+{
+    <div class="modal-overlay" @onclick="() => mostrarConfirmarEliminar = false"></div>
+    <div class="modal-custom scale-in p-4 text-center">
+        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+            <i class="bi bi-exclamation-triangle fs-3"></i>
+        </div>
+        <h5 class="fw-bold text-danger">¿Eliminar Contrato?</h5>
+        <p class="text-muted small">Esta acción borrará definitivamente el contrato y sus pagos asociados. No se puede deshacer.</p>
+
+        <div class="d-flex gap-3">
+            <button class="btn btn-light fw-bold w-50 py-2 rounded-pill" @onclick="() => mostrarConfirmarEliminar = false">CANCELAR</button>
+            <button class="btn btn-danger fw-bold w-50 py-2 rounded-pill" @onclick="EliminarContrato">ELIMINAR</button>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); z-index: 1040;
+    }
+    .modal-custom {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 90%; max-width: 400px;
+        background: white; border-radius: 20px; z-index: 1050;
+    }
+    .scale-in { animation: scaleIn 0.2s ease-out; }
+    @@keyframes scaleIn { from { transform: translate(-50%, -50%) scale(0.95); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+</style>
+
 @code {
     private List<ContratoDto> contratos = new();
     private bool cargando = true;
     private string errorMessage = "";
+    private bool mostrarConfirmarEliminar = false;
+    private ContratoDto? contratoSeleccionado;
 
     protected override async Task OnInitializedAsync()
     {
@@ -111,5 +151,33 @@
     private void AbrirMenu()
     {
         Layout?.ToggleSidebar();
+    }
+
+    private void AbrirConfirmacionEliminar(ContratoDto contrato, MouseEventArgs e)
+    {
+        contratoSeleccionado = contrato;
+        mostrarConfirmarEliminar = true;
+    }
+
+    private async Task EliminarContrato()
+    {
+        if (contratoSeleccionado == null) return;
+        mostrarConfirmarEliminar = false;
+        try
+        {
+            var exito = await Api.DeleteContratoAsync(contratoSeleccionado.Id);
+            if (exito)
+            {
+                contratos.Remove(contratoSeleccionado);
+            }
+            else
+            {
+                errorMessage = "No se pudo eliminar el contrato.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al eliminar contrato: {ex.Message}";
+        }
     }
 }
