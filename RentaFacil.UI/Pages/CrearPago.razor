@@ -214,6 +214,11 @@ else
     private decimal TotalServicios => cobrosServicios.Sum(c => c.Monto);
     private decimal TotalAPagar => (estado?.Contrato.Monto ?? 0) + TotalServicios;
 
+    // ── Valores originales del pago (solo en modo edición) ──
+    private decimal pagoOriginalTotal;
+    private decimal pagoOriginalServicios;
+    private string pagoOriginalPeriodo = "";
+
     private static string EtiquetaTipo(TipoServicio t) => t switch { TipoServicio.Agua => "Agua", TipoServicio.Electricidad => "Electricidad", TipoServicio.Gas => "Gas", _ => "Otro" };
     private static string IconoServicio(TipoServicio t) => t switch { TipoServicio.Agua => "bi-droplet-fill", TipoServicio.Electricidad => "bi-lightning-charge-fill", TipoServicio.Gas => "bi-fire", _ => "bi-gear-fill" };
 
@@ -238,18 +243,17 @@ else
                 PagoActual = null
             };
 
-            // Cobros de servicios calculados desde los medidores vinculados al contrato (mes actual).
-            var hoy = DateTime.Today;
-            cobrosServicios = await Api.GetCobrosContratoAsync(ContratoId, hoy.Month, hoy.Year);
-
-            montoAPagar = TotalAPagar;
-
             if (Id.HasValue)
             {
+                // Modo edición: cargamos los datos originales del pago; no recalculamos cobros
+                // de medidores para no sobreescribir los valores históricos del registro.
                 var pagos = await Api.GetPagosAsync();
                 var pago = pagos.FirstOrDefault(p => p.Id == Id.Value);
                 if (pago != null)
                 {
+                    pagoOriginalTotal = pago.TotalMonto;
+                    pagoOriginalServicios = pago.Servicios;
+                    pagoOriginalPeriodo = pago.Periodo;
                     montoAPagar = pago.ACuenta;
                     entregarFactura = pago.Facturado;
                 }
@@ -257,6 +261,13 @@ else
                 {
                     errorMessage = "No se encontró el pago a editar.";
                 }
+            }
+            else
+            {
+                // Modo creación: calculamos cobros de servicios desde los medidores vinculados al contrato.
+                var hoy = DateTime.Today;
+                cobrosServicios = await Api.GetCobrosContratoAsync(ContratoId, hoy.Month, hoy.Year);
+                montoAPagar = TotalAPagar;
             }
         }
     }
@@ -268,7 +279,17 @@ else
         errorMessage = "";
         var detalles = cobrosServicios.Where(c => c.Monto != 0).ToList();
 
-        var dto = new CrearPagoDto(ContratoId, estado.Contrato.Monto, montoAPagar, TotalServicios, DateTime.Now, estado.PeriodoActual, entregarFactura, detalles);
+        CrearPagoDto dto;
+        if (Id.HasValue)
+        {
+            // Edición: preservar TotalMonto, Servicios y Periodo del pago original.
+            // PagoService.UpdateAsync no toca los DetalleServicios, así que lista vacía es segura.
+            dto = new CrearPagoDto(ContratoId, pagoOriginalTotal, montoAPagar, pagoOriginalServicios, DateTime.Now, pagoOriginalPeriodo, entregarFactura, new List<DetalleServicioPagoDto>());
+        }
+        else
+        {
+            dto = new CrearPagoDto(ContratoId, estado.Contrato.Monto, montoAPagar, TotalServicios, DateTime.Now, estado.PeriodoActual, entregarFactura, detalles);
+        }
 
         try
         {

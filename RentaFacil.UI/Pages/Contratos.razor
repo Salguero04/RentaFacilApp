@@ -52,7 +52,7 @@
                             <div class="d-flex align-items-center gap-2">
                                 <small class="text-muted fw-bold">Día pago: @c.DiaPago</small>
                                 <button class="btn btn-link text-danger p-0 ms-2" style="font-size: 0.9rem;"
-                                        @onclick="e => AbrirConfirmacionEliminar(c, e)"
+                                        @onclick="() => AbrirConfirmacionEliminar(c)"
                                         @onclick:stopPropagation
                                         aria-label="Eliminar contrato">
                                     <i class="bi bi-trash-fill"></i>
@@ -153,7 +153,7 @@
         Layout?.ToggleSidebar();
     }
 
-    private void AbrirConfirmacionEliminar(ContratoDto contrato, MouseEventArgs e)
+    private void AbrirConfirmacionEliminar(ContratoDto contrato)
     {
         contratoSeleccionado = contrato;
         mostrarConfirmarEliminar = true;

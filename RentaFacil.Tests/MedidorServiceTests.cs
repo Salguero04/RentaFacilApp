@@ -140,7 +140,7 @@ public class MedidorServiceTests
     }
 
     [Fact]
-    public async Task ActualizarVinculo_MedidorNoPertenecEAlUsuario_RetornaFalse()
+    public async Task ActualizarVinculo_MedidorNoPerteneceAlUsuario_RetornaFalse()
     {
         var vinculo = new MedidorInquilino { Id = 5, MedidorId = 99, InquilinoId = 2, UsuarioId = 1, MetodoCobro = MetodoCobroInquilino.Manual, MontoFijo = 10 };
         _vinculoRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(vinculo);
@@ -154,7 +154,7 @@ public class MedidorServiceTests
     }
 
     [Fact]
-    public async Task ActualizarVinculo_InquilinoNoPertenecEAlUsuario_RetornaFalse()
+    public async Task ActualizarVinculo_InquilinoNoPerteneceAlUsuario_RetornaFalse()
     {
         var vinculo = new MedidorInquilino { Id = 5, MedidorId = 1, InquilinoId = 99, UsuarioId = 1, MetodoCobro = MetodoCobroInquilino.Manual, MontoFijo = 10 };
         var medidor = new Medidor { Id = 1, UsuarioId = 1, Nombre = "Med", Inquilinos = new List<MedidorInquilino>(), Inmueble = new Inmueble { Nombre = "Edif" } };
