@@ -27,7 +27,7 @@ public class AutenticacionService : IAutenticacionService
     public async Task<LoginResultDto?> LoginAsync(LoginDto dto)
     {
         var usuario = await _repository.GetByNombreUsuarioAsync(dto.NombreUsuario);
-        if (usuario == null || !usuario.Activo || usuario.PasswordHash == null
+        if (usuario == null || !usuario.Activo || string.IsNullOrEmpty(usuario.PasswordHash)
             || !BCrypt.Net.BCrypt.Verify(dto.Password, usuario.PasswordHash))
         {
             return null;

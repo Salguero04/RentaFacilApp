@@ -12,7 +12,8 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 - PDF: QuestPDF (licencia Community) para recibos formato Ticket (80mm) y Carta (A4)
 - Globalización: API y MAUI fuerzan `InvariantCulture`/`es-EC` al arrancar; `MoneyFormatter` (en `RentaFacil.Shared/Globalization/`) centraliza el formato de dinero (es-EC, `$X.XXX,XX`); infraestructura `.resx` lista para multiidioma (solo español poblado hoy) — ver `decisiones.md`.
 - Tests: xUnit + Moq + FluentAssertions (`RentaFacil.Tests`)
-- Servicios externos: ninguno integrado todavía (OAuth de Google, WhatsApp deep link, etc. están planeados pero no implementados — ver la sección "Pendiente" de `CLAUDE.md`)
+- Tiempo real: SignalR (hub `/hubs/datos` en la API, `[Authorize]`, JWT por query string solo en paths `/hubs/*`; `IDataChangeNotifier` best-effort emite `"CambioDatos"(entidad, usuarioId, accion)` al mutar Pago/Contrato; `SignalRClient` compartido en `RentaFacil.UI/Services`, suscrito hoy solo en `Pagos.razor`) — implementado 2026-07-07.
+- Servicios externos: login con Google OAuth 2.0 tiene los **cimientos** implementados (2026-07-07: validación de ID token con `Google.Apis.Auth` en la API, endpoint `POST api/auth/login-google`, abstracción `IProveedorGoogle` con botón oculto en la UI) pero está **inactivo hasta configurar credenciales** (user-secrets `Google:ClientId`, opcional `Google:PermitirRegistro`) e implementar `IProveedorGoogle` real por plataforma; WhatsApp deep link sigue sin implementar — ver la sección "Pendiente" de `CLAUDE.md`.
 
 ## Mapa de carpetas
 - `RentaFacil.Shared/` → DTOs (`Models/*Dto.cs`, records), enums (`Enums/TipoInmueble.cs`, `Enums/FrecuenciaPago.cs`) y `Globalization/MoneyFormatter`, compartidos por API y clientes. Sin lógica de negocio.
