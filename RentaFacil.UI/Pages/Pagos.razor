@@ -4,6 +4,8 @@
 @using RentaFacil.UI.Services
 @inject ApiClient Api
 @inject IDispositivoServicio Dispositivo
+@inject SignalRClient Realtime
+@implements IDisposable
 
 <h1>Estado de Pagos</h1>
 
@@ -75,6 +77,29 @@ else
     protected override async Task OnInitializedAsync()
     {
         pagos = await Api.GetPagosAsync();
+
+        // Tiempo real: si otro cliente cambia un Pago, recargamos la lista.
+        Realtime.CambioDatos += OnCambioDatos;
+        await Realtime.IniciarAsync();
+    }
+
+    private async void OnCambioDatos(string entidad, int usuarioId, string accion)
+    {
+        if (entidad != "Pago") return;
+
+        // El evento llega en un hilo de fondo: hay que volver al hilo de UI.
+        await InvokeAsync(async () =>
+        {
+            pagos = await Api.GetPagosAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        // Solo desuscribimos el handler; la conexión vive a nivel DI y la
+        // reutilizan otras páginas, así que NO la cerramos aquí.
+        Realtime.CambioDatos -= OnCambioDatos;
     }
 
     private async Task DescargarRecibo(int pagoId, string formato)

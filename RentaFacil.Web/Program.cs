@@ -27,6 +27,11 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ApiClient>();
+
+// Cliente SignalR para tiempo real. Scoped (en WASM equivale a un singleton
+// por sesión de la app), usando la misma URL base que ApiClient.
+builder.Services.AddScoped(sp => new SignalRClient(apiBaseUrl, sp.GetRequiredService<ITokenStore>()));
+
 builder.Services.AddLocalization();
 
 await builder.Build().RunAsync();

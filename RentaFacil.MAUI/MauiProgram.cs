@@ -54,6 +54,10 @@ public static class MauiProgram
 		builder.Services.AddScoped<AuthService>();
 		builder.Services.AddScoped<ApiClient>();
 
+		// Cliente SignalR para tiempo real. Singleton: una sola conexión viva
+		// durante toda la vida de la app, compartida por todas las páginas.
+		builder.Services.AddSingleton(sp => new SignalRClient(apiBaseUrl, sp.GetRequiredService<ITokenStore>()));
+
 		return builder.Build();
 	}
 }
