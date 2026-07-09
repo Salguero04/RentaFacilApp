@@ -8,16 +8,21 @@ public class AuthService
 {
     private readonly HttpClient _http;
     private readonly ITokenStore _tokenStore;
+    private readonly IProveedorGoogle _proveedorGoogle;
 
     public bool IsAuthenticated { get; private set; }
     public string? Rol { get; private set; }
 
+    /// <summary>Indica si el host actual tiene una implementación real de login con Google.</summary>
+    public bool GoogleDisponible => _proveedorGoogle.EstaSoportado;
+
     public event Action? OnAuthStateChanged;
 
-    public AuthService(HttpClient http, ITokenStore tokenStore)
+    public AuthService(HttpClient http, ITokenStore tokenStore, IProveedorGoogle proveedorGoogle)
     {
         _http = http;
         _tokenStore = tokenStore;
+        _proveedorGoogle = proveedorGoogle;
     }
 
     public async Task InicializarAsync()
@@ -47,6 +52,33 @@ public class AuthService
         catch (Exception ex)
         {
             Console.WriteLine($"Error en login: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> LoginConGoogleAsync()
+    {
+        try
+        {
+            var idToken = await _proveedorGoogle.ObtenerIdTokenAsync();
+            if (idToken == null) return false;
+
+            var respuesta = await _http.PostAsJsonAsync("api/auth/login-google", new LoginGoogleDto(idToken));
+            if (!respuesta.IsSuccessStatusCode) return false;
+
+            var resultado = await respuesta.Content.ReadFromJsonAsync<LoginResultDto>();
+            if (resultado == null) return false;
+
+            await _tokenStore.SetTokenAsync(resultado.Token);
+            await _tokenStore.SetRolAsync(resultado.Rol);
+            IsAuthenticated = true;
+            Rol = resultado.Rol;
+            OnAuthStateChanged?.Invoke();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en login con Google: {ex.Message}");
             return false;
         }
     }

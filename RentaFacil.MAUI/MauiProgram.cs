@@ -32,6 +32,7 @@ public static class MauiProgram
 		// Implementaciones de plataforma de las abstracciones de RentaFacil.UI
 		builder.Services.AddSingleton<ITokenStore, MauiTokenStore>();
 		builder.Services.AddSingleton<IDispositivoServicio, MauiDispositivoServicio>();
+		builder.Services.AddSingleton<IProveedorGoogle, ProveedorGoogleNoSoportado>();
 
 		// HttpClient (con el Bearer token vía AuthHeaderHandler que lee del ITokenStore)
 		builder.Services.AddScoped(sp =>

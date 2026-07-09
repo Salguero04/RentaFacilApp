@@ -16,6 +16,7 @@ const string apiBaseUrl = "http://localhost:5295";
 // Implementaciones de plataforma de las abstracciones de RentaFacil.UI (versión navegador).
 builder.Services.AddScoped<ITokenStore, WebTokenStore>();
 builder.Services.AddScoped<IDispositivoServicio, WebDispositivoServicio>();
+builder.Services.AddScoped<IProveedorGoogle, ProveedorGoogleNoSoportado>();
 
 // HttpClient hacia la API, con el Bearer token adjuntado por AuthHeaderHandler (lee del ITokenStore).
 builder.Services.AddScoped(sp =>

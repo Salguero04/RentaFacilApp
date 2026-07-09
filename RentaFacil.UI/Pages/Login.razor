@@ -31,6 +31,13 @@
                 @(cargando ? "Verificando..." : "Iniciar Sesión")
             </button>
         </form>
+
+        @if (Auth.GoogleDisponible)
+        {
+            <button type="button" class="btn btn-outline-secondary w-100 btn-lg rounded-3 shadow-sm" @onclick="DoLoginGoogle" disabled="@cargando">
+                Continuar con Google
+            </button>
+        }
     </div>
 </div>
 
@@ -63,6 +70,23 @@
         else
         {
             errorMessage = "Usuario o contraseña incorrectos.";
+        }
+    }
+
+    private async Task DoLoginGoogle()
+    {
+        errorMessage = "";
+        cargando = true;
+        var exito = await Auth.LoginConGoogleAsync();
+        cargando = false;
+
+        if (exito)
+        {
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "No se pudo iniciar sesión con Google.";
         }
     }
 }
