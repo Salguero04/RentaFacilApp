@@ -11,14 +11,25 @@ namespace RentaFacil.API.Services;
 public class DataChangeNotifier : IDataChangeNotifier
 {
     private readonly IHubContext<DatosHub> _hubContext;
+    private readonly ILogger<DataChangeNotifier> _logger;
 
-    public DataChangeNotifier(IHubContext<DatosHub> hubContext)
+    public DataChangeNotifier(IHubContext<DatosHub> hubContext, ILogger<DataChangeNotifier> logger)
     {
         _hubContext = hubContext;
+        _logger = logger;
     }
 
     public async Task NotificarCambioAsync(string entidad, int usuarioId, string accion)
     {
-        await _hubContext.Clients.All.SendAsync("CambioDatos", entidad, usuarioId, accion);
+        // Best-effort: si falla el envío al Hub, no debe propagarse hacia el
+        // Service que ya persistió el cambio con éxito.
+        try
+        {
+            await _hubContext.Clients.All.SendAsync("CambioDatos", entidad, usuarioId, accion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo notificar el cambio '{Accion}' de '{Entidad}' por SignalR", accion, entidad);
+        }
     }
 }

@@ -88,11 +88,19 @@ else
         if (entidad != "Pago") return;
 
         // El evento llega en un hilo de fondo: hay que volver al hilo de UI.
-        await InvokeAsync(async () =>
+        // El refresco es best-effort: si falla, lo tragamos para no tumbar el renderer.
+        try
         {
-            pagos = await Api.GetPagosAsync();
-            StateHasChanged();
-        });
+            await InvokeAsync(async () =>
+            {
+                pagos = await Api.GetPagosAsync();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Pagos] No se pudo refrescar la lista en tiempo real: {ex.Message}");
+        }
     }
 
     public void Dispose()
