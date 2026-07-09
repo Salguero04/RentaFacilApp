@@ -31,7 +31,14 @@ public class ValidadorTokenGoogle : IValidadorTokenGoogle
                 Audience = new[] { clientId }
             });
 
-            return new GoogleTokenInfo(payload.Subject, payload.Email, payload.Name);
+            // Sin email (token con scope insuficiente) no sirve para este flujo: no hay con qué
+            // vincular ni registrar la cuenta.
+            if (string.IsNullOrWhiteSpace(payload.Email))
+            {
+                return null;
+            }
+
+            return new GoogleTokenInfo(payload.Subject, payload.Email, payload.Name, payload.EmailVerified);
         }
         catch (InvalidJwtException)
         {

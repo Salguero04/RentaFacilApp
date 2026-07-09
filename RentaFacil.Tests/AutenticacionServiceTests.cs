@@ -118,7 +118,7 @@ public class AutenticacionServiceTests
     [Fact]
     public async Task LoginGoogleAsync_UsuarioConGoogleIdActivo_DevuelveToken()
     {
-        var info = new GoogleTokenInfo("google-123", "dueno@gmail.com", "Dueño");
+        var info = new GoogleTokenInfo("google-123", "dueno@gmail.com", "Dueño", true);
         _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
         _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
 
@@ -135,7 +135,7 @@ public class AutenticacionServiceTests
     [Fact]
     public async Task LoginGoogleAsync_UsuarioConGoogleIdInactivo_DevuelveCredencialesInvalidas()
     {
-        var info = new GoogleTokenInfo("google-123", "dueno@gmail.com", "Dueño");
+        var info = new GoogleTokenInfo("google-123", "dueno@gmail.com", "Dueño", true);
         _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
         _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
 
@@ -151,7 +151,7 @@ public class AutenticacionServiceTests
     [Fact]
     public async Task LoginGoogleAsync_EmailCoincidente_VinculaGoogleIdYDevuelveToken()
     {
-        var info = new GoogleTokenInfo("google-456", "dueno@gmail.com", "Dueño");
+        var info = new GoogleTokenInfo("google-456", "dueno@gmail.com", "Dueño", true);
         _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
         _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
 
@@ -176,7 +176,7 @@ public class AutenticacionServiceTests
     [Fact]
     public async Task LoginGoogleAsync_SinMatchYRegistroNoPermitido_DevuelveRegistroNoPermitido()
     {
-        var info = new GoogleTokenInfo("google-789", "nuevo@gmail.com", "Nuevo");
+        var info = new GoogleTokenInfo("google-789", "nuevo@gmail.com", "Nuevo", true);
         _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
         _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
 
@@ -194,7 +194,7 @@ public class AutenticacionServiceTests
     [Fact]
     public async Task LoginGoogleAsync_SinMatchYRegistroPermitido_CreaUsuarioYDevuelveToken()
     {
-        var info = new GoogleTokenInfo("google-999", "nuevo@gmail.com", "Nuevo");
+        var info = new GoogleTokenInfo("google-999", "nuevo@gmail.com", "Nuevo", true);
         _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
         _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
 
@@ -228,5 +228,92 @@ public class AutenticacionServiceTests
         var resultado = await _service.LoginAsync(new LoginDto("dueno", "cualquier-clave"));
 
         resultado.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoginGoogleAsync_EmailNoVerificado_NoVinculaPorEmail()
+    {
+        var info = new GoogleTokenInfo("google-456", "dueno@gmail.com", "Dueño", false);
+        _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
+        _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
+
+        _repositoryMock.Setup(r => r.GetByGoogleIdAsync("google-456")).ReturnsAsync((Usuario?)null);
+        var usuario = new Usuario { Id = 2, NombreUsuario = "dueno", Email = "dueno@gmail.com", Rol = AppRoles.Propietario, Activo = true };
+        _repositoryMock.Setup(r => r.GetByEmailAsync("dueno@gmail.com")).ReturnsAsync(usuario);
+        _configMock.Setup(c => c["Google:PermitirRegistro"]).Returns("false");
+
+        var resultado = await _service.LoginGoogleAsync(new LoginGoogleDto("token-valido"));
+
+        resultado.Resultado.Should().BeNull();
+        resultado.Error.Should().Be(ErrorLoginGoogle.RegistroNoPermitido);
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Usuario>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginGoogleAsync_EmailNoVerificadoYRegistroPermitido_DevuelveTokenInvalido()
+    {
+        var info = new GoogleTokenInfo("google-789", "nuevo@gmail.com", "Nuevo", false);
+        _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
+        _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
+
+        _repositoryMock.Setup(r => r.GetByGoogleIdAsync("google-789")).ReturnsAsync((Usuario?)null);
+        _repositoryMock.Setup(r => r.GetByEmailAsync("nuevo@gmail.com")).ReturnsAsync((Usuario?)null);
+        _configMock.Setup(c => c["Google:PermitirRegistro"]).Returns("true");
+
+        var resultado = await _service.LoginGoogleAsync(new LoginGoogleDto("token-valido"));
+
+        resultado.Resultado.Should().BeNull();
+        resultado.Error.Should().Be(ErrorLoginGoogle.TokenInvalido);
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Usuario>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginGoogleAsync_UsuarioPorEmailInactivo_DevuelveCredencialesInvalidas()
+    {
+        var info = new GoogleTokenInfo("google-456", "dueno@gmail.com", "Dueño", true);
+        _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
+        _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
+
+        _repositoryMock.Setup(r => r.GetByGoogleIdAsync("google-456")).ReturnsAsync((Usuario?)null);
+        var usuario = new Usuario { Id = 2, NombreUsuario = "dueno", Email = "dueno@gmail.com", Rol = AppRoles.Propietario, Activo = false };
+        _repositoryMock.Setup(r => r.GetByEmailAsync("dueno@gmail.com")).ReturnsAsync(usuario);
+
+        var resultado = await _service.LoginGoogleAsync(new LoginGoogleDto("token-valido"));
+
+        resultado.Resultado.Should().BeNull();
+        resultado.Error.Should().Be(ErrorLoginGoogle.CredencialesInvalidas);
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Usuario>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginGoogleAsync_NombreUsuarioColisiona_CreaConSufijo()
+    {
+        var info = new GoogleTokenInfo("google-999", "nuevo@gmail.com", "Nuevo", true);
+        _validadorGoogleMock.Setup(v => v.EstaConfigurado).Returns(true);
+        _validadorGoogleMock.Setup(v => v.ValidarAsync("token-valido")).ReturnsAsync(info);
+
+        _repositoryMock.Setup(r => r.GetByGoogleIdAsync("google-999")).ReturnsAsync((Usuario?)null);
+        _repositoryMock.Setup(r => r.GetByEmailAsync("nuevo@gmail.com")).ReturnsAsync((Usuario?)null);
+        _configMock.Setup(c => c["Google:PermitirRegistro"]).Returns("true");
+
+        // Ya existe un usuario con ese NombreUsuario (índice único) -> se debe de-duplicar.
+        _repositoryMock.Setup(r => r.GetByNombreUsuarioAsync("nuevo@gmail.com")).ReturnsAsync(
+            new Usuario { Id = 3, NombreUsuario = "nuevo@gmail.com", Rol = AppRoles.Propietario, Activo = true });
+
+        Usuario? creado = null;
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Usuario>()))
+            .Callback<Usuario>(u => creado = u)
+            .ReturnsAsync((Usuario u) => u);
+
+        var resultado = await _service.LoginGoogleAsync(new LoginGoogleDto("token-valido"));
+
+        resultado.Resultado.Should().NotBeNull();
+        resultado.Error.Should().BeNull();
+        creado.Should().NotBeNull();
+        creado!.NombreUsuario.Should().NotBe("nuevo@gmail.com");
+        creado.NombreUsuario.Should().EndWith("-google-");
+        creado.NombreUsuario.Length.Should().BeLessThanOrEqualTo(50);
+        creado.GoogleId.Should().Be("google-999");
+        _repositoryMock.Verify(r => r.AddAsync(It.Is<Usuario>(u => u.NombreUsuario != "nuevo@gmail.com")), Times.Once);
     }
 }

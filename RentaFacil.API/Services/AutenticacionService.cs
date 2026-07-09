@@ -74,11 +74,23 @@ public class AutenticacionService : IAutenticacionService
         }
 
         var usuarioPorEmail = await _repository.GetByEmailAsync(info.Email);
-        if (usuarioPorEmail != null && usuarioPorEmail.Activo)
+        if (usuarioPorEmail != null)
         {
-            usuarioPorEmail.GoogleId = info.GoogleId;
-            await _repository.UpdateAsync(usuarioPorEmail);
-            return new ResultadoLoginGoogle(GenerarToken(usuarioPorEmail), null);
+            if (!usuarioPorEmail.Activo)
+            {
+                return new ResultadoLoginGoogle(null, ErrorLoginGoogle.CredencialesInvalidas);
+            }
+
+            // Solo vinculamos por email si Google confirma que el dueño del email lo verificó:
+            // sin esto, cualquiera con un email no verificado podría apropiarse de una cuenta
+            // existente. Si no está verificado, seguimos como si no hubiera match (cae a
+            // PermitirRegistro más abajo).
+            if (info.EmailVerified)
+            {
+                usuarioPorEmail.GoogleId = info.GoogleId;
+                await _repository.UpdateAsync(usuarioPorEmail);
+                return new ResultadoLoginGoogle(GenerarToken(usuarioPorEmail), null);
+            }
         }
 
         bool.TryParse(_configuration["Google:PermitirRegistro"], out var permitirRegistro);
@@ -87,9 +99,28 @@ public class AutenticacionService : IAutenticacionService
             return new ResultadoLoginGoogle(null, ErrorLoginGoogle.RegistroNoPermitido);
         }
 
+        // El auto-registro también exige email verificado: es la única prueba de que el email
+        // realmente pertenece a quien está iniciando sesión.
+        if (!info.EmailVerified)
+        {
+            return new ResultadoLoginGoogle(null, ErrorLoginGoogle.TokenInvalido);
+        }
+
+        var nombreUsuario = info.Email.Length > 50 ? info.Email[..50] : info.Email;
+
+        // NombreUsuario tiene índice único: si ya existe (colisión al truncar a 50 chars, o dos
+        // emails distintos que truncan igual), se le agrega un sufijo corto y determinista del
+        // GoogleId para desambiguar, sin superar los 50 chars.
+        if (await _repository.GetByNombreUsuarioAsync(nombreUsuario) != null)
+        {
+            var sufijo = "-" + info.GoogleId[..Math.Min(7, info.GoogleId.Length)];
+            var baseNombre = nombreUsuario[..Math.Min(50 - sufijo.Length, nombreUsuario.Length)];
+            nombreUsuario = baseNombre + sufijo;
+        }
+
         var nuevoUsuario = new Usuario
         {
-            NombreUsuario = info.Email.Length > 50 ? info.Email[..50] : info.Email,
+            NombreUsuario = nombreUsuario,
             Email = info.Email,
             GoogleId = info.GoogleId,
             PasswordHash = null,
