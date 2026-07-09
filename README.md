@@ -36,7 +36,6 @@ La documentación técnica del proyecto está organizada para consumo de [Claude
 
 - [`CLAUDE.md`](CLAUDE.md) — índice central: arranque rápido, pendientes y enlaces.
 - [`docs/contexto/`](docs/contexto/) — contexto detallado por eje (arquitectura, convenciones, decisiones, glosario, flujo de trabajo, errores conocidos).
-- [`ClaudeCampeonatoatp.md`](ClaudeCampeonatoatp.md) — referencia de seguridad/auditoría a implementar.
 
 ## 🚀 Cómo empezar
 
