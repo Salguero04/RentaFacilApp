@@ -12,13 +12,15 @@ public class ContratoService : IContratoService
     private readonly IInquilinoRepository _inquilinoRepository;
     private readonly IUnidadRepository _unidadRepository;
     private readonly INotificacionPendienteRepository _notificacionRepository;
+    private readonly IDataChangeNotifier _notifier;
 
-    public ContratoService(IContratoRepository repository, IInquilinoRepository inquilinoRepository, IUnidadRepository unidadRepository, INotificacionPendienteRepository notificacionRepository)
+    public ContratoService(IContratoRepository repository, IInquilinoRepository inquilinoRepository, IUnidadRepository unidadRepository, INotificacionPendienteRepository notificacionRepository, IDataChangeNotifier notifier)
     {
         _repository = repository;
         _inquilinoRepository = inquilinoRepository;
         _unidadRepository = unidadRepository;
         _notificacionRepository = notificacionRepository;
+        _notifier = notifier;
     }
 
     public async Task<IEnumerable<ContratoDto>> GetAllAsync(int usuarioId)
@@ -44,6 +46,7 @@ public class ContratoService : IContratoService
             Observaciones = dto.Observaciones, Activo = true, UsuarioId = usuarioId
         };
         var created = await _repository.AddAsync(contrato);
+        await _notifier.NotificarCambioAsync("Contrato", usuarioId, "crear");
         return MapToDto(created);
     }
     public async Task<bool> UpdateAsync(int id, CrearContratoDto dto, int usuarioId)
@@ -66,9 +69,14 @@ public class ContratoService : IContratoService
             Tipo = "ContratoEditado", Detalle = "El contrato fue modificado por el arrendador.",
             Fecha = DateTime.Now, Notificado = false, UsuarioId = usuarioId
         });
+        await _notifier.NotificarCambioAsync("Contrato", usuarioId, "actualizar");
         return true;
     }
-    public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
+    public async Task DeleteAsync(int id, int usuarioId)
+    {
+        await _repository.DeleteAsync(id, usuarioId);
+        await _notifier.NotificarCambioAsync("Contrato", usuarioId, "eliminar");
+    }
 
     private async Task<bool> PertenecenAlUsuario(int inquilinoId, int unidadId, int usuarioId)
     {
@@ -85,11 +93,13 @@ public class PagoService : IPagoService
 {
     private readonly IPagoRepository _repository;
     private readonly IContratoRepository _contratoRepository;
+    private readonly IDataChangeNotifier _notifier;
 
-    public PagoService(IPagoRepository repository, IContratoRepository contratoRepository)
+    public PagoService(IPagoRepository repository, IContratoRepository contratoRepository, IDataChangeNotifier notifier)
     {
         _repository = repository;
         _contratoRepository = contratoRepository;
+        _notifier = notifier;
     }
 
     public async Task<IEnumerable<PagoDto>> GetAllAsync(int usuarioId)
@@ -128,6 +138,7 @@ public class PagoService : IPagoService
             }
         }
         var created = await _repository.AddAsync(pago);
+        await _notifier.NotificarCambioAsync("Pago", usuarioId, "crear");
         return MapToDto(created);
     }
     public async Task<bool> UpdateAsync(int id, CrearPagoDto dto, int usuarioId)
@@ -144,9 +155,14 @@ public class PagoService : IPagoService
         pago.Facturado = dto.Facturado;
         pago.Completado = dto.ACuenta >= dto.TotalMonto + dto.Servicios;
         await _repository.UpdateAsync(pago);
+        await _notifier.NotificarCambioAsync("Pago", usuarioId, "actualizar");
         return true;
     }
-    public async Task DeleteAsync(int id, int usuarioId) => await _repository.DeleteAsync(id, usuarioId);
+    public async Task DeleteAsync(int id, int usuarioId)
+    {
+        await _repository.DeleteAsync(id, usuarioId);
+        await _notifier.NotificarCambioAsync("Pago", usuarioId, "eliminar");
+    }
 
     private static PagoDto MapToDto(Pago p) => new(
         p.Id, p.ContratoId, p.TotalMonto, p.ACuenta, p.Servicios, p.FechaPago, p.Periodo, p.Facturado, p.Completado,

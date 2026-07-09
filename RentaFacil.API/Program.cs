@@ -67,6 +67,10 @@ builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IFacturaMedido
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.INotificacionPendienteRepository, RentaFacil.API.Repositories.NotificacionPendienteRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IMedidorService, RentaFacil.API.Services.MedidorService>();
 
+// SignalR para notificaciones en tiempo real (ver DatosHub / DataChangeNotifier).
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IDataChangeNotifier, RentaFacil.API.Services.DataChangeNotifier>();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IUsuarioRepository, RentaFacil.API.Repositories.UsuarioRepository>();
 builder.Services.AddScoped<IAutenticacionService, RentaFacil.API.Services.AutenticacionService>();
@@ -85,6 +89,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        // SignalR no puede mandar el token en la cabecera Authorization en el
+        // handshake de WebSockets, así que lo lee de la query string, pero SOLO
+        // para las rutas del Hub (/hubs). Las rutas /api/... siguen usando la cabecera.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -156,6 +177,7 @@ app.Use(async (context, next) =>
 });
 
 app.MapControllers();
+app.MapHub<RentaFacil.API.Hubs.DatosHub>("/hubs/datos");
 
 using (var scope = app.Services.CreateScope())
 {
