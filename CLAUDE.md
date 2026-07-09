@@ -53,7 +53,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 > Sección de handoff: dónde quedó el trabajo y cómo continuar. **Reescribir** (no acumular histórico) tras cada cambio mediano/mayor.
 
 **Fecha:** 2026-07-07
-**Commit:** rama **`feature/signalr-google-oauth`** completa (Fases 2 y 3 del plan `~/.claude/plans/comencemos-con-hacer-funcionar-quirky-gadget.md`), revisión final de integración (Opus): **Ready to merge**. Antes, en esta misma sesión: **Fase 1 "arreglar todos los CRUD" mergeada a `main`** en `94f3836` (13 commits, rama `feature/crud-fixes-signalr` borrada).
+**Commit:** `b2851c8` en `main` (pusheado) — **Fases 2 (SignalR) y 3 (cimientos Google OAuth) mergeadas** (rama `feature/signalr-google-oauth`, 9 commits, ya borrada; revisión final de integración Opus: Ready to merge). Antes, en esta misma sesión: **Fase 1 "arreglar todos los CRUD" mergeada** en `94f3836` (rama `feature/crud-fixes-signalr`, borrada). Plan de referencia: `~/.claude/plans/comencemos-con-hacer-funcionar-quirky-gadget.md`.
 
 **Antecedentes (ya en `main`):** 6 proyectos (`Shared`/`API`/`UI`/`MAUI`/`Web`/`Tests`), seguridad/auditoría (JWT+BCrypt, IDOR/BOLA cerrado, auditoría automática, rate limiting), globalización, SQL Server con 4 schemas, y el rediseño de Medidores (entidad propia + 3 métodos de cobro + edición de contratos, 2026-06-29, `06f7e56`). Detalle en el historial de git.
 
@@ -71,7 +71,7 @@ Lista de lo que falta implementar. El análisis de seguridad/auditoría a fondo 
 
 **Verificación:** 84/84 tests verdes; builds API/UI/Web limpios; revisiones por fase (Opus) + fixes aplicados (`2638bef` robustez SignalR, `bc3fc7c` seguridad email_verified); revisión final de integración: Ready to merge. **No probado manualmente:** el flujo tiempo real end-to-end con dos clientes reales (requiere API + MAUI + Web corriendo a la vez) — hacerlo en la próxima sesión con la guía de verificación del plan.
 
-**Próximo paso:** merge de `feature/signalr-google-oauth` a `main` + push (en curso al cierre de esta sesión); luego prueba manual del tiempo real con dos clientes; pendientes del backlog sin cambios (k6, Docker, gráficas, etc.).
+**Próximo paso:** prueba manual del tiempo real con dos clientes a la vez (API + MAUI + Web; guía en la sección "Verificación end-to-end — Fase 2" del plan); pendientes del backlog sin cambios (k6, Docker, gráficas, etc.).
 
 **Gotchas vigentes:** (a) `ServiciosController.cs` contiene la clase `MedidoresController` (nombre archivo↔clase desalineado). (b) `MedidorInquilino.ContratoId` y `Recordatorio.ContratoId` son informativos (sin FK estricta); al editar un vínculo el `ContratoId` queda null. (c) `NotificacionPendiente` sigue sin consumidor. (d) `dotnet build RentaFacil.slnx` completo falla con NETSDK1047 (multi-RID de MAUI) — buildear proyectos individuales (`RentaFacil.API`, `RentaFacil.UI`) o correr `dotnet test`. (e) credenciales de login: las siembra user-secrets `SeedAdmin:Usuario`/`SeedAdmin:Password` (no hay `admin/admin`). (f) borrar un Contrato cascada-borra sus Pagos a nivel BD sin pasar por `PagoService` → NO se emite evento SignalR `"Pago"`, el otro cliente no refresca su lista de pagos en ese caso. (g) eventos SignalR van a `Clients.All` sin agrupar por usuario — aceptable single-arrendador, agrupar antes de multiusuario real.
 
