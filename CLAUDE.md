@@ -26,6 +26,10 @@ Cada eje en su archivo — abre solo el que necesites:
 - **Flujo de trabajo** → @docs/contexto/flujo-de-trabajo.md — pasos para un cambio, checklist de "terminado", y las 3 fases de deploy (Local actual / Render / Oracle Cloud).
 - **Errores conocidos** → @docs/contexto/errores-conocidos.md — `UnidadesController` salta capas, IP de prod hardcodeada, IDOR y login local (ya RESUELTOS), y cosas que parecen rotas pero son a propósito (CORS/HTTPS, seed dummy).
 
+**Planes aprobados pendientes de ejecutar** (independientes entre sí; cada uno lista su integración con el otro):
+- **Producción en Oracle Cloud** → docs/contexto/plan-produccion-oracle.md — Docker (SQL Server emulado amd64 en ARM), Cloudflare/HTTPS, deploy `update.sh`, correos Brevo + recuperación de contraseña, versionado/bloqueo de APK obsoleto. Incluye 2 decisiones abiertas del usuario (dominio propio vs DuckDNS+Caddy; GATE de SQL Server emulado).
+- **Módulo Inquilino + QR** → docs/contexto/plan-modulo-inquilino.md — cierre de la API por roles (bloqueante), vínculo `Inquilino↔Usuario`, registro self-service con código QR (cámara en MAUI), portal `api/mi/*` (contrato/pagos/recibos/consumos/notificaciones), reportes de pago con confirmación del arrendador, SignalR por grupos de usuario.
+
 ### Regla: verificar `docs/contexto/` al cerrar cualquier tarea
 **Motivo:** ya pasó dos veces — `arquitectura.md` ("Lo que NO existe") y `errores-conocidos.md` seguían describiendo auth/IDOR/auditoría como ausentes mucho después de haberse implementado y mergeado, porque al cerrar esas tareas solo se actualizó `CLAUDE.md` y las secciones "positivas" de esos mismos archivos, nunca las listas de cierre.
 
