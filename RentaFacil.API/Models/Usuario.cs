@@ -12,8 +12,10 @@ public class Usuario
     [MaxLength(150)]
     public string? Email { get; set; }
 
-    [Required]
-    public string PasswordHash { get; set; } = null!;
+    public string? PasswordHash { get; set; }
+
+    [MaxLength(255)]
+    public string? GoogleId { get; set; }
 
     [Required, MaxLength(30)]
     public string Rol { get; set; } = null!;

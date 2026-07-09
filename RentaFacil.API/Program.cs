@@ -74,6 +74,7 @@ builder.Services.AddScoped<IDataChangeNotifier, RentaFacil.API.Services.DataChan
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IUsuarioRepository, RentaFacil.API.Repositories.UsuarioRepository>();
 builder.Services.AddScoped<IAutenticacionService, RentaFacil.API.Services.AutenticacionService>();
+builder.Services.AddScoped<IValidadorTokenGoogle, RentaFacil.API.Services.ValidadorTokenGoogle>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Falta configurar Jwt:Key. Ejecuta: dotnet user-secrets set \"Jwt:Key\" \"<clave>\" --project RentaFacil.API");

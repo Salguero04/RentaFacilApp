@@ -31,4 +31,20 @@ public class AuthController : ControllerBase
         var usuario = await _service.RegistrarAsync(dto);
         return Ok(new { usuario.Id, usuario.NombreUsuario, usuario.Rol });
     }
+
+    [HttpPost("login-google")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LoginGoogle([FromBody] LoginGoogleDto dto)
+    {
+        var resultado = await _service.LoginGoogleAsync(dto);
+        if (resultado.Resultado != null) return Ok(resultado.Resultado);
+
+        return resultado.Error switch
+        {
+            ErrorLoginGoogle.NoConfigurado => StatusCode(503, new { message = "El inicio de sesión con Google no está configurado en el servidor." }),
+            ErrorLoginGoogle.RegistroNoPermitido => StatusCode(403, new { message = "Tu cuenta de Google no está registrada. Contacta al administrador." }),
+            _ => Unauthorized()
+        };
+    }
 }

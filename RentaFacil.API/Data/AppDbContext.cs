@@ -62,6 +62,14 @@ public class AppDbContext : DbContext
             .HasIndex(u => u.NombreUsuario)
             .IsUnique();
 
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.GoogleId)
+            .IsUnique()
+            .HasFilter("[GoogleId] IS NOT NULL");
+
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.Email);
+
         modelBuilder.Entity<Inmueble>()
             .HasMany(i => i.Unidades)
             .WithOne(u => u.Inmueble)
