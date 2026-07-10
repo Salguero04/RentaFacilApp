@@ -200,4 +200,97 @@ public class ApiClient
         var response = await _http.DeleteAsync($"api/recordatorios/{id}");
         return response.IsSuccessStatusCode;
     }
+
+    // ── Portal del inquilino (vinculación, api/mi/*, reportes de pago) ─────
+    public async Task<CodigoVinculacionDto?> GenerarCodigoVinculacionAsync(int contratoId)
+    {
+        var response = await _http.PostAsync($"api/contratos/{contratoId}/codigo-vinculacion", null);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CodigoVinculacionDto>() : null;
+    }
+
+    // El endpoint de QR exige Bearer (a propósito: NO se hizo [AllowAnonymous] solo para que
+    // sirva un <img src> directo). Se descarga con el HttpClient autenticado y la UI lo muestra
+    // como data URL (data:image/png;base64,...).
+    public async Task<byte[]?> GetQrPngAsync(string codigo)
+    {
+        var response = await _http.GetAsync($"api/contratos/codigo-vinculacion/{codigo}/qr");
+        return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
+    }
+
+    public async Task<(LoginResultDto? Resultado, string? Error)> RegistrarInquilinoAsync(RegistrarInquilinoDto dto)
+    {
+        var response = await _http.PostAsJsonAsync("api/auth/registrar-inquilino", dto);
+        if (response.IsSuccessStatusCode)
+        {
+            return (await response.Content.ReadFromJsonAsync<LoginResultDto>(), null);
+        }
+
+        var error = await response.Content.ReadFromJsonAsync<MensajeErrorDto>();
+        return (null, error?.Message ?? "No se pudo completar el registro.");
+    }
+
+    public async Task<List<MiContratoDto>> GetMisContratosAsync()
+        => await _http.GetFromJsonAsync<List<MiContratoDto>>("api/mi/contratos") ?? new();
+
+    public async Task<List<MiPagoDto>> GetMisPagosAsync()
+        => await _http.GetFromJsonAsync<List<MiPagoDto>>("api/mi/pagos") ?? new();
+
+    public async Task<List<MiConsumoDto>> GetMisConsumosAsync()
+        => await _http.GetFromJsonAsync<List<MiConsumoDto>>("api/mi/consumos") ?? new();
+
+    public async Task<List<MiNotificacionDto>> GetMisNotificacionesAsync()
+        => await _http.GetFromJsonAsync<List<MiNotificacionDto>>("api/mi/notificaciones") ?? new();
+
+    public async Task<bool> MarcarNotificacionLeidaAsync(int id)
+    {
+        var response = await _http.PutAsync($"api/mi/notificaciones/{id}/leida", null);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> VincularCodigoAsync(string codigo)
+    {
+        var response = await _http.PostAsJsonAsync("api/mi/vincular", new VincularCodigoDto(codigo));
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<byte[]?> GetMiReciboPdfAsync(int pagoId, string formato)
+    {
+        var response = await _http.GetAsync($"api/mi/pagos/{pagoId}/recibo?formato={formato}");
+        return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
+    }
+
+    public async Task<ReportePagoDto?> CrearReportePagoAsync(CrearReportePagoDto dto)
+    {
+        var response = await _http.PostAsJsonAsync("api/mi/reportes-pago", dto);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<ReportePagoDto>() : null;
+    }
+
+    public async Task<List<ReportePagoDto>> GetMisReportesPagoAsync()
+        => await _http.GetFromJsonAsync<List<ReportePagoDto>>("api/mi/reportes-pago") ?? new();
+
+    // ── Bandeja del arrendador para reportes de pago ("ya pagué") ──────────
+    public async Task<List<ReportePagoDto>> GetReportesPagoAsync()
+        => await _http.GetFromJsonAsync<List<ReportePagoDto>>("api/reportes-pago") ?? new();
+
+    public async Task<bool> ConfirmarReporteAsync(int id)
+    {
+        var response = await _http.PutAsync($"api/reportes-pago/{id}/confirmar", null);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> RechazarReporteAsync(int id)
+    {
+        var response = await _http.PutAsync($"api/reportes-pago/{id}/rechazar", null);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<byte[]?> GetComprobanteAsync(int reporteId)
+    {
+        var response = await _http.GetAsync($"api/reportes-pago/{reporteId}/comprobante");
+        return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : null;
+    }
+
+    // Forma local del body `{message}` que devuelven los 400 de la API (no hay un DTO
+    // compartido para errores genéricos en RentaFacil.Shared).
+    private record MensajeErrorDto(string Message);
 }

@@ -16,6 +16,9 @@ public class AuthService
     /// <summary>Indica si el host actual tiene una implementación real de login con Google.</summary>
     public bool GoogleDisponible => _proveedorGoogle.EstaSoportado;
 
+    /// <summary>Cuenta con rol Inquilino (portal de solo-lectura /mi/*), no arrendador.</summary>
+    public bool EsInquilino => Rol == RentaFacil.Shared.AppRoles.Inquilino;
+
     public event Action? OnAuthStateChanged;
 
     public AuthService(HttpClient http, ITokenStore tokenStore, IProveedorGoogle proveedorGoogle)
@@ -42,11 +45,7 @@ public class AuthService
             var resultado = await respuesta.Content.ReadFromJsonAsync<LoginResultDto>();
             if (resultado == null) return false;
 
-            await _tokenStore.SetTokenAsync(resultado.Token);
-            await _tokenStore.SetRolAsync(resultado.Rol);
-            IsAuthenticated = true;
-            Rol = resultado.Rol;
-            OnAuthStateChanged?.Invoke();
+            await IniciarSesionConResultadoAsync(resultado);
             return true;
         }
         catch (Exception ex)
@@ -54,6 +53,17 @@ public class AuthService
             Console.WriteLine($"Error en login: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>Persiste token/rol de un login ya resuelto (usado por login normal, Google y
+    /// el registro self-service del inquilino con código QR) y notifica a la UI.</summary>
+    public async Task IniciarSesionConResultadoAsync(LoginResultDto resultado)
+    {
+        await _tokenStore.SetTokenAsync(resultado.Token);
+        await _tokenStore.SetRolAsync(resultado.Rol);
+        IsAuthenticated = true;
+        Rol = resultado.Rol;
+        OnAuthStateChanged?.Invoke();
     }
 
     public async Task<bool> LoginConGoogleAsync()
@@ -69,11 +79,7 @@ public class AuthService
             var resultado = await respuesta.Content.ReadFromJsonAsync<LoginResultDto>();
             if (resultado == null) return false;
 
-            await _tokenStore.SetTokenAsync(resultado.Token);
-            await _tokenStore.SetRolAsync(resultado.Rol);
-            IsAuthenticated = true;
-            Rol = resultado.Rol;
-            OnAuthStateChanged?.Invoke();
+            await IniciarSesionConResultadoAsync(resultado);
             return true;
         }
         catch (Exception ex)

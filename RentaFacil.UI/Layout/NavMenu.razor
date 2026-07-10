@@ -20,33 +20,54 @@
     <!-- Menu Links -->
     <div class="nav-scrollable mt-3 flex-grow-1 px-3">
         <nav class="nav flex-column sidebar-nav gap-2">
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="" Match="NavLinkMatch.All" @onclick="AlNavegar">
-                <i class="bi bi-house-door-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inicio / Estado</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inquilinos" @onclick="AlNavegar">
-                <i class="bi bi-person-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inquilinos</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inmuebles" @onclick="AlNavegar">
-                <i class="bi bi-shop fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inmuebles</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="contratos" @onclick="AlNavegar">
-                <i class="bi bi-file-earmark-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Contratos</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="suscripcion" @onclick="AlNavegar">
-                <i class="bi bi-alarm fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Suscripción</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="recordatorios" @onclick="AlNavegar">
-                <i class="bi bi-bell fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Recordatorios</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="medidores" @onclick="AlNavegar">
-                <i class="bi bi-speedometer2 fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Medidores</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="ingresos" @onclick="AlNavegar">
-                <i class="bi bi-cash-stack fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Ingresos</span>
-            </NavLink>
-            <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="opinion" @onclick="AlNavegar">
-                <i class="bi bi-chat-left-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Opinión</span>
-            </NavLink>
+            @if (!Auth.EsInquilino)
+            {
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="" Match="NavLinkMatch.All" @onclick="AlNavegar">
+                    <i class="bi bi-house-door-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inicio / Estado</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inquilinos" @onclick="AlNavegar">
+                    <i class="bi bi-person-fill fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inquilinos</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="inmuebles" @onclick="AlNavegar">
+                    <i class="bi bi-shop fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Inmuebles</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="contratos" @onclick="AlNavegar">
+                    <i class="bi bi-file-earmark-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Contratos</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="suscripcion" @onclick="AlNavegar">
+                    <i class="bi bi-alarm fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Suscripción</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="recordatorios" @onclick="AlNavegar">
+                    <i class="bi bi-bell fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Recordatorios</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="medidores" @onclick="AlNavegar">
+                    <i class="bi bi-speedometer2 fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Medidores</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="ingresos" @onclick="AlNavegar">
+                    <i class="bi bi-cash-stack fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Ingresos</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="opinion" @onclick="AlNavegar">
+                    <i class="bi bi-chat-left-text fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Opinión</span>
+                </NavLink>
+            }
+            else
+            {
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="mi" Match="NavLinkMatch.All" @onclick="AlNavegar">
+                    <i class="bi bi-house-door fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Mi contrato</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="mi/pagos" @onclick="AlNavegar">
+                    <i class="bi bi-cash-stack fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Mis pagos</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="mi/consumos" @onclick="AlNavegar">
+                    <i class="bi bi-droplet fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Consumos</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="mi/notificaciones" @onclick="AlNavegar">
+                    <i class="bi bi-bell fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Notificaciones</span>
+                </NavLink>
+                <NavLink class="nav-link text-dark fw-bold rounded-3 px-3 py-2" href="mi/reportar" @onclick="AlNavegar">
+                    <i class="bi bi-send fs-5 text-secondary"></i> <span class="ms-3 fs-6 nav-label">Reportar pago</span>
+                </NavLink>
+            }
 
             <hr class="my-2 text-muted opacity-25" />
 
