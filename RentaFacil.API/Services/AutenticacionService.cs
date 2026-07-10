@@ -33,7 +33,7 @@ public class AutenticacionService : IAutenticacionService
             return null;
         }
 
-        return GenerarToken(usuario);
+        return EmitirToken(usuario);
     }
 
     public async Task<Usuario> RegistrarAsync(RegistrarUsuarioDto dto)
@@ -70,7 +70,7 @@ public class AutenticacionService : IAutenticacionService
                 return new ResultadoLoginGoogle(null, ErrorLoginGoogle.CredencialesInvalidas);
             }
 
-            return new ResultadoLoginGoogle(GenerarToken(usuarioPorGoogleId), null);
+            return new ResultadoLoginGoogle(EmitirToken(usuarioPorGoogleId), null);
         }
 
         var usuarioPorEmail = await _repository.GetByEmailAsync(info.Email);
@@ -89,7 +89,7 @@ public class AutenticacionService : IAutenticacionService
             {
                 usuarioPorEmail.GoogleId = info.GoogleId;
                 await _repository.UpdateAsync(usuarioPorEmail);
-                return new ResultadoLoginGoogle(GenerarToken(usuarioPorEmail), null);
+                return new ResultadoLoginGoogle(EmitirToken(usuarioPorEmail), null);
             }
         }
 
@@ -130,10 +130,10 @@ public class AutenticacionService : IAutenticacionService
         };
         await _repository.AddAsync(nuevoUsuario);
 
-        return new ResultadoLoginGoogle(GenerarToken(nuevoUsuario), null);
+        return new ResultadoLoginGoogle(EmitirToken(nuevoUsuario), null);
     }
 
-    private LoginResultDto GenerarToken(Usuario usuario)
+    public LoginResultDto EmitirToken(Usuario usuario)
     {
         var expiraEn = DateTime.UtcNow.AddHours(8);
         var claims = new[]

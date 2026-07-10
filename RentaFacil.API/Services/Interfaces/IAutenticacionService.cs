@@ -20,4 +20,8 @@ public interface IAutenticacionService
     Task<LoginResultDto?> LoginAsync(LoginDto dto);
     Task<Usuario> RegistrarAsync(RegistrarUsuarioDto dto);
     Task<ResultadoLoginGoogle> LoginGoogleAsync(LoginGoogleDto dto);
+
+    // Emisión de JWT reutilizable server-side por otros Services (p.ej. VinculacionService
+    // tras registrar/vincular una cuenta de inquilino) sin duplicar la lógica de firma.
+    LoginResultDto EmitirToken(Usuario usuario);
 }
