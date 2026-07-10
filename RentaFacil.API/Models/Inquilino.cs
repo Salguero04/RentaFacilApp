@@ -22,6 +22,9 @@ public class Inquilino : IAuditable
 
     public int UsuarioId { get; set; }
 
+    // Cuenta de acceso del inquilino (auth.Usuarios). Null = aún no se ha registrado en la app.
+    public int? UsuarioCuentaId { get; set; }
+
     public ICollection<Contrato> Contratos { get; set; } = new List<Contrato>();
 
     public int? CreadoPorId { get; set; }

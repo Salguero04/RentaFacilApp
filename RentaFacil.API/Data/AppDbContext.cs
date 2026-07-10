@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<FacturaMedidor> FacturasMedidor { get; set; }
     public DbSet<DetalleServicioPago> DetallesServicioPago { get; set; }
     public DbSet<NotificacionPendiente> NotificacionesPendientes { get; set; }
+    public DbSet<CodigoVinculacion> CodigosVinculacion { get; set; }
+    public DbSet<ReportePago> ReportesPago { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +45,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FacturaMedidor>().ToTable("FacturasMedidor", "renta");
         modelBuilder.Entity<DetalleServicioPago>().ToTable("DetallesServicioPago", "renta");
         modelBuilder.Entity<NotificacionPendiente>().ToTable("NotificacionesPendientes", "renta");
+        modelBuilder.Entity<CodigoVinculacion>().ToTable("CodigosVinculacion", "renta");
+        modelBuilder.Entity<ReportePago>().ToTable("ReportesPago", "renta");
 
         // Índices de UsuarioId en renta.* — SQL Server no indexa FKs ni este
         // campo automáticamente, y el WHERE UsuarioId = X corre en cada request.
@@ -57,6 +61,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FacturaMedidor>().HasIndex(f => f.UsuarioId);
         modelBuilder.Entity<DetalleServicioPago>().HasIndex(d => d.UsuarioId);
         modelBuilder.Entity<NotificacionPendiente>().HasIndex(n => n.UsuarioId);
+        modelBuilder.Entity<CodigoVinculacion>().HasIndex(c => c.UsuarioId);
+        modelBuilder.Entity<ReportePago>().HasIndex(r => r.UsuarioId);
+        modelBuilder.Entity<ReportePago>().HasIndex(r => r.CuentaInquilinoId);
+
+        // Cuenta de acceso del inquilino (auth.Usuarios) — no único: hoy 1:1 en la práctica,
+        // pero no hay una restricción de negocio que lo exija a nivel de BD.
+        modelBuilder.Entity<Inquilino>().HasIndex(i => i.UsuarioCuentaId);
+
+        // Código de vinculación QR — un solo uso, se busca por Codigo al canjear.
+        modelBuilder.Entity<CodigoVinculacion>()
+            .HasIndex(c => c.Codigo)
+            .IsUnique();
 
         modelBuilder.Entity<Usuario>()
             .HasIndex(u => u.NombreUsuario)
