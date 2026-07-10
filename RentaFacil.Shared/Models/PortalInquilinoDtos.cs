@@ -21,3 +21,10 @@ public record MiNotificacionDto(int Id, string Tipo, string? Detalle, DateTime F
 
 // Body de POST api/mi/vincular — el inquilino ya logueado agrega otro contrato/arrendador con un código nuevo.
 public record VincularCodigoDto(string Codigo);
+
+// "Ya pagué": el inquilino lo reporta desde su portal (api/mi/reportes-pago); el arrendador lo
+// confirma o rechaza desde su bandeja (api/reportes-pago). Confirmar NO crea el Pago automático.
+public record CrearReportePagoDto(int ContratoId, decimal Monto, string? Comentario, byte[]? FotoComprobante);
+
+public record ReportePagoDto(int Id, int ContratoId, int InquilinoId, string NombreInquilino, decimal Monto,
+                             string? Comentario, bool TieneComprobante, DateTime FechaReporte, EstadoReportePago Estado);
