@@ -10,6 +10,9 @@ public class UsuarioRepository : IUsuarioRepository
     private readonly AppDbContext _context;
     public UsuarioRepository(AppDbContext context) => _context = context;
 
+    public async Task<Usuario?> GetByIdAsync(int id) =>
+        await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
+
     public async Task<Usuario?> GetByNombreUsuarioAsync(string nombreUsuario) =>
         await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario);
 

@@ -82,7 +82,10 @@ public class PortalInquilinoRepository : IPortalInquilinoRepository
         await _context.Inquilinos.Where(i => i.UsuarioCuentaId == cuentaId).ToListAsync();
 
     public async Task<IEnumerable<Contrato>> GetContratosPorInquilinosAsync(List<int> inquilinoIds) =>
-        await _context.Contratos.Where(c => inquilinoIds.Contains(c.InquilinoId)).ToListAsync();
+        await _context.Contratos
+            .Include(c => c.Unidad).ThenInclude(u => u.Inmueble)
+            .Where(c => inquilinoIds.Contains(c.InquilinoId))
+            .ToListAsync();
 
     public async Task<IEnumerable<Pago>> GetPagosPorContratosAsync(List<int> contratoIds) =>
         await _context.Pagos.Where(p => contratoIds.Contains(p.ContratoId)).ToListAsync();

@@ -72,6 +72,7 @@ builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.ICodigoVincula
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IReportePagoRepository, RentaFacil.API.Repositories.ReportePagoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPortalInquilinoRepository, RentaFacil.API.Repositories.PortalInquilinoRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IVinculacionService, RentaFacil.API.Services.VinculacionService>();
+builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IPortalInquilinoService, RentaFacil.API.Services.PortalInquilinoService>();
 
 // SignalR para notificaciones en tiempo real (ver DatosHub / DataChangeNotifier).
 builder.Services.AddSignalR();

@@ -4,6 +4,7 @@ namespace RentaFacil.API.Repositories.Interfaces;
 
 public interface IUsuarioRepository
 {
+    Task<Usuario?> GetByIdAsync(int id);
     Task<Usuario?> GetByNombreUsuarioAsync(string nombreUsuario);
     Task<Usuario?> GetByGoogleIdAsync(string googleId);
     Task<Usuario?> GetByEmailAsync(string email);
