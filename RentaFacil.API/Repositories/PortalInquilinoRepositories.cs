@@ -26,6 +26,19 @@ public class CodigoVinculacionRepository : ICodigoVinculacionRepository
         _context.CodigosVinculacion.Update(codigo);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> ReclamarAsync(int id)
+    {
+        // UPDATE condicional: solo un request concurrente puede reclamar el código (UsadoEn pasa
+        // de NULL a ahora en una sola sentencia; el perdedor ve 0 filas afectadas).
+        var filas = await _context.CodigosVinculacion
+            .Where(c => c.Id == id && c.UsadoEn == null && c.FechaExpiracion > DateTime.UtcNow)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsadoEn, DateTime.UtcNow));
+        return filas > 0;
+    }
+
+    public async Task<bool> ExisteAsync(string codigo) =>
+        await _context.CodigosVinculacion.AnyAsync(c => c.Codigo == codigo);
 }
 
 public class ReportePagoRepository : IReportePagoRepository

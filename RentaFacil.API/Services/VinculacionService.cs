@@ -92,6 +92,14 @@ public class VinculacionService : IVinculacionService
             return (null, "Ese inquilino ya está vinculado a otra cuenta.");
         }
 
+        // Reclamo atómico: cierra la ventana TOCTOU entre la verificación de vigencia (arriba) y
+        // el consumo del código. Si otro request concurrente ya lo reclamó, este pierde con el
+        // mismo error genérico (no revela que hubo una carrera).
+        if (!await _codigoRepository.ReclamarAsync(codigo.Id))
+        {
+            return (null, "El código no es válido, ya expiró o ya fue usado.");
+        }
+
         var nuevoUsuario = new Usuario
         {
             NombreUsuario = dto.NombreUsuario,
@@ -106,8 +114,8 @@ public class VinculacionService : IVinculacionService
         inquilino.UsuarioCuentaId = usuarioCreado.Id;
         await _inquilinoRepository.UpdateAsync(inquilino);
 
-        codigo.UsadoEn = DateTime.UtcNow;
-        await _codigoRepository.UpdateAsync(codigo);
+        // Nota: si algo falla a partir de aquí (p. ej. UpdateAsync del inquilino), el código ya
+        // quedó reclamado/quemado por ReclamarAsync — aceptable, el arrendador genera otro.
 
         return (_autenticacionService.EmitirToken(usuarioCreado), null);
     }
@@ -126,11 +134,18 @@ public class VinculacionService : IVinculacionService
             return false;
         }
 
+        // Reclamo atómico: cierra la ventana TOCTOU entre la verificación de vigencia (arriba) y
+        // el consumo del código.
+        if (!await _codigoRepository.ReclamarAsync(codigoVinculacion.Id))
+        {
+            return false;
+        }
+
         inquilino.UsuarioCuentaId = cuentaId;
         await _inquilinoRepository.UpdateAsync(inquilino);
 
-        codigoVinculacion.UsadoEn = DateTime.UtcNow;
-        await _codigoRepository.UpdateAsync(codigoVinculacion);
+        // Nota: si UpdateAsync del inquilino falla desde aquí, el código ya quedó reclamado/quemado
+        // por ReclamarAsync — aceptable, el arrendador genera otro.
 
         return true;
     }
@@ -145,12 +160,15 @@ public class VinculacionService : IVinculacionService
 
     private async Task<string> GenerarCodigoUnicoAsync()
     {
+        // ExisteAsync mira TODOS los códigos (usados/expirados/vigentes): el índice único de
+        // `Codigo` es global, así que un código ya usado o expirado también colisionaría al
+        // insertar uno nuevo con el mismo valor.
         string codigo;
         do
         {
             codigo = GenerarCodigoAleatorio();
         }
-        while (await _codigoRepository.GetVigenteAsync(codigo) != null);
+        while (await _codigoRepository.ExisteAsync(codigo));
 
         return codigo;
     }

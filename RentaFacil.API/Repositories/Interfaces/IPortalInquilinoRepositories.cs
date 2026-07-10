@@ -7,6 +7,16 @@ public interface ICodigoVinculacionRepository
     Task<CodigoVinculacion> AddAsync(CodigoVinculacion codigo);
     Task<CodigoVinculacion?> GetVigenteAsync(string codigo);      // no usado y no expirado
     Task UpdateAsync(CodigoVinculacion codigo);
+
+    // Reclamo atómico: marca UsadoEn en una sola sentencia condicional (UPDATE ... WHERE UsadoEn
+    // IS NULL) para cerrar la ventana TOCTOU entre "verificar vigente" y "marcar usado" cuando dos
+    // requests concurrentes intentan consumir el mismo código. Devuelve false si el código ya no
+    // estaba disponible (ya usado o expirado) en el momento del reclamo.
+    Task<bool> ReclamarAsync(int id);
+
+    // Busca en TODOS los códigos (usados, expirados o vigentes) — el índice único de `Codigo` es
+    // global, así que el chequeo de colisión al generar uno nuevo debe serlo también.
+    Task<bool> ExisteAsync(string codigo);
 }
 
 public interface IReportePagoRepository

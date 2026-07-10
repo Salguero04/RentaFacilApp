@@ -106,6 +106,7 @@ public class VinculacionServiceTests
         var codigo = new CodigoVinculacion { Id = 1, Codigo = "ABCD1234", ContratoId = 10, InquilinoId = 5, UsuarioId = 1, FechaCreacion = DateTime.UtcNow, FechaExpiracion = DateTime.UtcNow.AddDays(7) };
         _codigoRepoMock.Setup(r => r.GetVigenteAsync("ABCD1234")).ReturnsAsync(codigo);
         _usuarioRepoMock.Setup(r => r.GetByNombreUsuarioAsync("nuevoinquilino")).ReturnsAsync((Usuario?)null);
+        _codigoRepoMock.Setup(r => r.ReclamarAsync(1)).ReturnsAsync(true);
 
         var inquilino = new Inquilino { Id = 5, NombreCompleto = "Juan", Identificacion = "123", UsuarioId = 1, UsuarioCuentaId = null };
         _inquilinoRepoMock.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(inquilino);
@@ -118,11 +119,6 @@ public class VinculacionServiceTests
         Inquilino? inquilinoActualizado = null;
         _inquilinoRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Inquilino>()))
             .Callback<Inquilino>(i => inquilinoActualizado = i)
-            .Returns(Task.CompletedTask);
-
-        CodigoVinculacion? codigoActualizado = null;
-        _codigoRepoMock.Setup(r => r.UpdateAsync(It.IsAny<CodigoVinculacion>()))
-            .Callback<CodigoVinculacion>(c => codigoActualizado = c)
             .Returns(Task.CompletedTask);
 
         var tokenEsperado = new LoginResultDto("token-jwt", "nuevoinquilino", AppRoles.Inquilino, DateTime.UtcNow.AddHours(8));
@@ -144,12 +140,31 @@ public class VinculacionServiceTests
         inquilinoActualizado.Should().NotBeNull();
         inquilinoActualizado!.UsuarioCuentaId.Should().Be(42);
 
-        codigoActualizado.Should().NotBeNull();
-        codigoActualizado!.UsadoEn.Should().NotBeNull();
-
+        _codigoRepoMock.Verify(r => r.ReclamarAsync(1), Times.Once);
         _usuarioRepoMock.Verify(r => r.AddAsync(It.Is<Usuario>(u => u.Rol == AppRoles.Inquilino && u.Email == "inquilino@correo.com")), Times.Once);
         _inquilinoRepoMock.Verify(r => r.UpdateAsync(It.Is<Inquilino>(i => i.UsuarioCuentaId == 42)), Times.Once);
-        _codigoRepoMock.Verify(r => r.UpdateAsync(It.Is<CodigoVinculacion>(c => c.UsadoEn != null)), Times.Once);
+        _codigoRepoMock.Verify(r => r.UpdateAsync(It.IsAny<CodigoVinculacion>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegistrarInquilino_CodigoReclamadoPorOtroRequest_DevuelveError()
+    {
+        var codigo = new CodigoVinculacion { Id = 1, Codigo = "ABCD1234", ContratoId = 10, InquilinoId = 5, UsuarioId = 1, FechaCreacion = DateTime.UtcNow, FechaExpiracion = DateTime.UtcNow.AddDays(7) };
+        _codigoRepoMock.Setup(r => r.GetVigenteAsync("ABCD1234")).ReturnsAsync(codigo);
+        _usuarioRepoMock.Setup(r => r.GetByNombreUsuarioAsync("nuevoinquilino")).ReturnsAsync((Usuario?)null);
+        _codigoRepoMock.Setup(r => r.ReclamarAsync(1)).ReturnsAsync(false);
+
+        var inquilino = new Inquilino { Id = 5, NombreCompleto = "Juan", Identificacion = "123", UsuarioId = 1, UsuarioCuentaId = null };
+        _inquilinoRepoMock.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(inquilino);
+
+        var dto = new RegistrarInquilinoDto("ABCD1234", "nuevoinquilino", "clave1234", "inquilino@correo.com");
+        var (resultado, error) = await _service.RegistrarInquilinoAsync(dto);
+
+        resultado.Should().BeNull();
+        error.Should().NotBeNullOrEmpty();
+        _codigoRepoMock.Verify(r => r.ReclamarAsync(1), Times.Once);
+        _usuarioRepoMock.Verify(r => r.AddAsync(It.IsAny<Usuario>()), Times.Never);
+        _inquilinoRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Inquilino>()), Times.Never);
     }
 
     [Fact]
@@ -157,6 +172,7 @@ public class VinculacionServiceTests
     {
         var codigo = new CodigoVinculacion { Id = 1, Codigo = "ABCD1234", ContratoId = 10, InquilinoId = 5, UsuarioId = 1, FechaCreacion = DateTime.UtcNow, FechaExpiracion = DateTime.UtcNow.AddDays(7) };
         _codigoRepoMock.Setup(r => r.GetVigenteAsync("ABCD1234")).ReturnsAsync(codigo);
+        _codigoRepoMock.Setup(r => r.ReclamarAsync(1)).ReturnsAsync(true);
 
         var inquilino = new Inquilino { Id = 5, NombreCompleto = "Juan", Identificacion = "123", UsuarioId = 1, UsuarioCuentaId = null };
         _inquilinoRepoMock.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(inquilino);
@@ -166,18 +182,30 @@ public class VinculacionServiceTests
             .Callback<Inquilino>(i => inquilinoActualizado = i)
             .Returns(Task.CompletedTask);
 
-        CodigoVinculacion? codigoActualizado = null;
-        _codigoRepoMock.Setup(r => r.UpdateAsync(It.IsAny<CodigoVinculacion>()))
-            .Callback<CodigoVinculacion>(c => codigoActualizado = c)
-            .Returns(Task.CompletedTask);
-
         var exito = await _service.VincularCuentaExistenteAsync("ABCD1234", 77);
 
         exito.Should().BeTrue();
         inquilinoActualizado.Should().NotBeNull();
         inquilinoActualizado!.UsuarioCuentaId.Should().Be(77);
-        codigoActualizado.Should().NotBeNull();
-        codigoActualizado!.UsadoEn.Should().NotBeNull();
+        _codigoRepoMock.Verify(r => r.ReclamarAsync(1), Times.Once);
+        _codigoRepoMock.Verify(r => r.UpdateAsync(It.IsAny<CodigoVinculacion>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task VincularCuentaExistente_CodigoReclamadoPorOtroRequest_DevuelveFalse()
+    {
+        var codigo = new CodigoVinculacion { Id = 1, Codigo = "ABCD1234", ContratoId = 10, InquilinoId = 5, UsuarioId = 1, FechaCreacion = DateTime.UtcNow, FechaExpiracion = DateTime.UtcNow.AddDays(7) };
+        _codigoRepoMock.Setup(r => r.GetVigenteAsync("ABCD1234")).ReturnsAsync(codigo);
+        _codigoRepoMock.Setup(r => r.ReclamarAsync(1)).ReturnsAsync(false);
+
+        var inquilino = new Inquilino { Id = 5, NombreCompleto = "Juan", Identificacion = "123", UsuarioId = 1, UsuarioCuentaId = null };
+        _inquilinoRepoMock.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(inquilino);
+
+        var exito = await _service.VincularCuentaExistenteAsync("ABCD1234", 77);
+
+        exito.Should().BeFalse();
+        _codigoRepoMock.Verify(r => r.ReclamarAsync(1), Times.Once);
+        _inquilinoRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Inquilino>()), Times.Never);
     }
 
     [Fact]
