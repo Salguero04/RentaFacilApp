@@ -1,12 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentaFacil.API.Extensions;
 using RentaFacil.API.Services.Interfaces;
+using RentaFacil.Shared;
 using RentaFacil.Shared.Models;
 
 namespace RentaFacil.API.Controllers;
 
 [ApiController]
 [Route("api/medidores")]
+[Authorize(Roles = RentaFacil.Shared.AppRoles.Administrador + "," + RentaFacil.Shared.AppRoles.Propietario)]
 public class MedidoresController : ControllerBase
 {
     private readonly IMedidorService _service;

@@ -1,15 +1,18 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentaFacil.API.Data;
 using RentaFacil.API.Extensions;
 using RentaFacil.API.Models;
 using RentaFacil.API.Services.Interfaces;
+using RentaFacil.Shared;
 using RentaFacil.Shared.Models;
 
 namespace RentaFacil.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = RentaFacil.Shared.AppRoles.Administrador + "," + RentaFacil.Shared.AppRoles.Propietario)]
 public class ContratosController : ControllerBase
 {
     private readonly IContratoService _service;
@@ -39,6 +42,7 @@ public class ContratosController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = RentaFacil.Shared.AppRoles.Administrador + "," + RentaFacil.Shared.AppRoles.Propietario)]
 public class PagosController : ControllerBase
 {
     private readonly IPagoService _service;
@@ -88,6 +92,7 @@ public class PagosController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = RentaFacil.Shared.AppRoles.Administrador + "," + RentaFacil.Shared.AppRoles.Propietario)]
 public class RecordatoriosController : ControllerBase
 {
     private readonly IRecordatorioService _service;
@@ -116,6 +121,7 @@ public class RecordatoriosController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = RentaFacil.Shared.AppRoles.Administrador + "," + RentaFacil.Shared.AppRoles.Propietario)]
 public class UnidadesController : ControllerBase
 {
     private readonly IUnidadService _service;
