@@ -17,11 +17,13 @@ public class MiPortalController : ControllerBase
 {
     private readonly IPortalInquilinoService _service;
     private readonly IVinculacionService _vinculacionService;
+    private readonly IReportePagoService _reportePagoService;
 
-    public MiPortalController(IPortalInquilinoService service, IVinculacionService vinculacionService)
+    public MiPortalController(IPortalInquilinoService service, IVinculacionService vinculacionService, IReportePagoService reportePagoService)
     {
         _service = service;
         _vinculacionService = vinculacionService;
+        _reportePagoService = reportePagoService;
     }
 
     [HttpGet("contratos")]
@@ -59,4 +61,15 @@ public class MiPortalController : ControllerBase
         if (!vinculado) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("reportes-pago")]
+    public async Task<IActionResult> CrearReportePago([FromBody] CrearReportePagoDto dto)
+    {
+        var creado = await _reportePagoService.CrearAsync(dto, User.ObtenerUsuarioId());
+        if (creado == null) return BadRequest();
+        return Created($"api/mi/reportes-pago/{creado.Id}", creado);
+    }
+
+    [HttpGet("reportes-pago")]
+    public async Task<IActionResult> GetReportesPago() => Ok(await _reportePagoService.GetMisReportesAsync(User.ObtenerUsuarioId()));
 }
