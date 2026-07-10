@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -12,4 +13,13 @@ namespace RentaFacil.API.Hubs;
 [Authorize]
 public class DatosHub : Hub
 {
+    public override async Task OnConnectedAsync()
+    {
+        // Cada cliente solo escucha su propio grupo: los eventos del arrendador
+        // no llegan a los inquilinos (ni a otros usuarios) y viceversa.
+        var id = Context.UserIdentifier ?? Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!string.IsNullOrEmpty(id))
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"usuario-{id}");
+        await base.OnConnectedAsync();
+    }
 }

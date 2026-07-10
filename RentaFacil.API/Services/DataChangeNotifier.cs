@@ -25,7 +25,7 @@ public class DataChangeNotifier : IDataChangeNotifier
         // Service que ya persistió el cambio con éxito.
         try
         {
-            await _hubContext.Clients.All.SendAsync("CambioDatos", entidad, usuarioId, accion);
+            await _hubContext.Clients.Group($"usuario-{usuarioId}").SendAsync("CambioDatos", entidad, usuarioId, accion);
         }
         catch (Exception ex)
         {
