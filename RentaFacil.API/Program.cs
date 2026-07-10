@@ -67,6 +67,11 @@ builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IFacturaMedido
 builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.INotificacionPendienteRepository, RentaFacil.API.Repositories.NotificacionPendienteRepository>();
 builder.Services.AddScoped<RentaFacil.API.Services.Interfaces.IMedidorService, RentaFacil.API.Services.MedidorService>();
 
+// Módulo Inquilino: vinculación por código QR, reportes de pago y portal del inquilino.
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.ICodigoVinculacionRepository, RentaFacil.API.Repositories.CodigoVinculacionRepository>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IReportePagoRepository, RentaFacil.API.Repositories.ReportePagoRepository>();
+builder.Services.AddScoped<RentaFacil.API.Repositories.Interfaces.IPortalInquilinoRepository, RentaFacil.API.Repositories.PortalInquilinoRepository>();
+
 // SignalR para notificaciones en tiempo real (ver DatosHub / DataChangeNotifier).
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IDataChangeNotifier, RentaFacil.API.Services.DataChangeNotifier>();
