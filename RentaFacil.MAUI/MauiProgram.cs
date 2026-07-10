@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using RentaFacil.MAUI.Platform;
 using RentaFacil.UI.Abstractions;
 using RentaFacil.UI.Services;
+using ZXing.Net.Maui.Controls;
 
 namespace RentaFacil.MAUI;
 
@@ -12,6 +13,7 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseBarcodeReader()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -33,6 +35,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ITokenStore, MauiTokenStore>();
 		builder.Services.AddSingleton<IDispositivoServicio, MauiDispositivoServicio>();
 		builder.Services.AddSingleton<IProveedorGoogle, ProveedorGoogleNoSoportado>();
+		builder.Services.AddSingleton<IEscanerQr, MauiEscanerQr>();
 
 		// HttpClient (con el Bearer token vía AuthHeaderHandler que lee del ITokenStore)
 		builder.Services.AddScoped(sp =>

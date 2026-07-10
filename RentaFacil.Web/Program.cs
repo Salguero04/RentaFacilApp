@@ -17,6 +17,7 @@ const string apiBaseUrl = "http://localhost:5295";
 builder.Services.AddScoped<ITokenStore, WebTokenStore>();
 builder.Services.AddScoped<IDispositivoServicio, WebDispositivoServicio>();
 builder.Services.AddScoped<IProveedorGoogle, ProveedorGoogleNoSoportado>();
+builder.Services.AddScoped<IEscanerQr, EscanerQrNoSoportado>();
 
 // HttpClient hacia la API, con el Bearer token adjuntado por AuthHeaderHandler (lee del ITokenStore).
 builder.Services.AddScoped(sp =>
