@@ -16,7 +16,13 @@ namespace RentaFacil.API.Controllers;
 public class ContratosController : ControllerBase
 {
     private readonly IContratoService _service;
-    public ContratosController(IContratoService service) => _service = service;
+    private readonly IVinculacionService _vinculacionService;
+
+    public ContratosController(IContratoService service, IVinculacionService vinculacionService)
+    {
+        _service = service;
+        _vinculacionService = vinculacionService;
+    }
 
     [HttpGet] public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync(User.ObtenerUsuarioId()));
     [HttpGet("{id}")] public async Task<IActionResult> GetById(int id) { var res = await _service.GetByIdAsync(id, User.ObtenerUsuarioId()); return res == null ? NotFound() : Ok(res); }
@@ -38,6 +44,18 @@ public class ContratosController : ControllerBase
     }
 
     [HttpDelete("{id}")] public async Task<IActionResult> Delete(int id) { await _service.DeleteAsync(id, User.ObtenerUsuarioId()); return NoContent(); }
+
+    [HttpPost("{id}/codigo-vinculacion")]
+    public async Task<IActionResult> GenerarCodigoVinculacion(int id)
+    {
+        var dto = await _vinculacionService.GenerarCodigoAsync(id, User.ObtenerUsuarioId());
+        if (dto == null) return NotFound();
+        return Ok(dto);
+    }
+
+    [HttpGet("codigo-vinculacion/{codigo}/qr")]
+    public IActionResult ObtenerQr(string codigo) =>
+        File(_vinculacionService.GenerarQrPng(codigo), "image/png");
 }
 
 [ApiController]

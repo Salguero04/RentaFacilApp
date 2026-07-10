@@ -12,7 +12,13 @@ namespace RentaFacil.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAutenticacionService _service;
-    public AuthController(IAutenticacionService service) => _service = service;
+    private readonly IVinculacionService _vinculacionService;
+
+    public AuthController(IAutenticacionService service, IVinculacionService vinculacionService)
+    {
+        _service = service;
+        _vinculacionService = vinculacionService;
+    }
 
     [HttpPost("login")]
     [AllowAnonymous]
@@ -46,5 +52,15 @@ public class AuthController : ControllerBase
             ErrorLoginGoogle.RegistroNoPermitido => StatusCode(403, new { message = "Tu cuenta de Google no está registrada. Contacta al administrador." }),
             _ => Unauthorized()
         };
+    }
+
+    [HttpPost("registrar-inquilino")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RegistrarInquilino([FromBody] RegistrarInquilinoDto dto)
+    {
+        var (resultado, error) = await _vinculacionService.RegistrarInquilinoAsync(dto);
+        if (error != null) return BadRequest(new { message = error });
+        return Ok(resultado);
     }
 }
