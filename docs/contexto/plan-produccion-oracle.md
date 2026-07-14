@@ -38,6 +38,8 @@ Los dos planes son **independientes y pueden ejecutarse en cualquier orden**, pe
 1. **SQL Server emulado en ARM64 (Ampere A1) es frágil**: la imagen oficial `mcr.microsoft.com/mssql/server` bajo qemu funciona en muchos casos pero es lenta y a veces inestable (Azure SQL Edge, la alternativa ARM nativa, fue retirada en 2025). El plan incluye un **smoke test GATE (Tarea 4)** antes de continuar; si falla, el fallback documentado es usar la VM x86 "always free" (VM.Standard.E2.1.Micro) solo para SQL Server.
 2. **DuckDNS NO se puede poner detrás de Cloudflare**: Cloudflare exige un dominio propio cuyos nameservers controles; no puedes agregar `tuapp.duckdns.org` a una cuenta de Cloudflare. Opciones en la Tarea 5: (A recomendada) comprar un dominio (~$10/año) y usar Cloudflare free, o (B) quedarse con DuckDNS **sin** Cloudflare usando Caddy + Let's Encrypt en el servidor.
 
+**Nota de backlog (revisión final del módulo inquilino, 2026-07-14):** `RentaFacil.API` arrastra `Microsoft.OpenApi` 2.4.1 transitivo con advertencia **NU1903** (vulnerabilidad alta conocida). Antes del deploy a internet (Tarea 5 en adelante), subir el paquete que lo arrastra (Swashbuckle/OpenAPI) a una versión sin la advertencia o fijar la versión parcheada explícita.
+
 ## Global Constraints
 
 - Código, comentarios, mensajes de UI y de commit **en español**.
