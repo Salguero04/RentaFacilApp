@@ -51,6 +51,12 @@
                             </span>
                             <div class="d-flex align-items-center gap-2">
                                 <small class="text-muted fw-bold">Día pago: @c.DiaPago</small>
+                                <button class="btn btn-link text-primary p-0 ms-2" style="font-size: 0.9rem;"
+                                        @onclick="() => AbrirVincular(c)"
+                                        @onclick:stopPropagation
+                                        aria-label="Vincular inquilino">
+                                    <i class="bi bi-qr-code"></i>
+                                </button>
                                 <button class="btn btn-link text-danger p-0 ms-2" style="font-size: 0.9rem;"
                                         @onclick="() => AbrirConfirmacionEliminar(c)"
                                         @onclick:stopPropagation
@@ -99,6 +105,33 @@
     </div>
 }
 
+<!-- Modal Vincular Inquilino (QR) -->
+@if (mostrarVincular && contratoVinculando != null)
+{
+    <div class="modal-overlay" @onclick="CerrarVincular"></div>
+    <div class="modal-custom scale-in p-4 text-center">
+        <h5 class="fw-bold mb-3">Vincular Inquilino</h5>
+        <p class="text-muted small">Contrato #@contratoVinculando.Id</p>
+
+        @if (cargandoQr)
+        {
+            <p class="text-center my-4"><em>Generando código QR...</em></p>
+        }
+        else if (!string.IsNullOrEmpty(errorVinculo))
+        {
+            <div class="alert alert-danger small">@errorVinculo</div>
+        }
+        else if (codigoVinculacion != null && !string.IsNullOrEmpty(qrBase64))
+        {
+            <img src="data:image/png;base64,@qrBase64" alt="Código QR de vinculación" style="max-width: 100%;" />
+            <p class="fw-bold mt-3 mb-1" style="font-family: monospace; font-size: 1.5rem; letter-spacing: 0.1rem;">@codigoVinculacion.Codigo</p>
+            <p class="text-muted small">Válido hasta @codigoVinculacion.FechaExpiracion.ToString("dd/MMM HH:mm")</p>
+        }
+
+        <button class="btn btn-light fw-bold w-100 py-2 rounded-pill mt-3" @onclick="CerrarVincular">CERRAR</button>
+    </div>
+}
+
 <style>
     .modal-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -119,6 +152,14 @@
     private string errorMessage = "";
     private bool mostrarConfirmarEliminar = false;
     private ContratoDto? contratoSeleccionado;
+
+    // Modal Vincular Inquilino (QR)
+    private bool mostrarVincular = false;
+    private ContratoDto? contratoVinculando;
+    private bool cargandoQr = false;
+    private string errorVinculo = "";
+    private CodigoVinculacionDto? codigoVinculacion;
+    private string? qrBase64;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,5 +220,50 @@
         {
             errorMessage = $"Error al eliminar contrato: {ex.Message}";
         }
+    }
+
+    private async Task AbrirVincular(ContratoDto contrato)
+    {
+        contratoVinculando = contrato;
+        mostrarVincular = true;
+        cargandoQr = true;
+        errorVinculo = "";
+        codigoVinculacion = null;
+        qrBase64 = null;
+        StateHasChanged();
+
+        try
+        {
+            var dto = await Api.GenerarCodigoVinculacionAsync(contrato.Id);
+            if (dto == null)
+            {
+                errorVinculo = "No se pudo generar el código de vinculación.";
+                return;
+            }
+
+            var bytes = await Api.GetQrPngAsync(dto.Codigo);
+            if (bytes == null)
+            {
+                errorVinculo = "No se pudo generar el código QR.";
+                return;
+            }
+
+            codigoVinculacion = dto;
+            qrBase64 = Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            errorVinculo = $"Error al generar el código: {ex.Message}";
+        }
+        finally
+        {
+            cargandoQr = false;
+        }
+    }
+
+    private void CerrarVincular()
+    {
+        mostrarVincular = false;
+        contratoVinculando = null;
     }
 }
