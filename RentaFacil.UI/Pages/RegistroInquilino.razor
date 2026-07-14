@@ -1,0 +1,132 @@
+@page "/registro-inquilino"
+@layout LoginLayout
+@inject ApiClient Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IEscanerQr EscanerQr
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary">RentaFácil</h2>
+            <p class="text-muted">Registro de Inquilino</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger p-2 text-center" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <form @onsubmit="DoRegistrar">
+            <div class="mb-3">
+                <label class="form-label text-muted small">Código de vinculación</label>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control form-control-lg rounded-3 text-uppercase" maxlength="8"
+                           value="@codigo" @oninput="OnCodigoInput" placeholder="Ej: A1B2C3D4" required />
+                    @if (EscanerQr.EstaSoportado)
+                    {
+                        <button type="button" class="btn btn-outline-primary rounded-3" @onclick="EscanearCodigo" title="Escanear QR">
+                            <i class="bi bi-qr-code-scan"></i>
+                        </button>
+                    }
+                </div>
+                <small class="text-muted">El código te lo entrega tu arrendador (en papel o por QR).</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted small">Usuario</label>
+                <input type="text" class="form-control form-control-lg rounded-3" @bind="usuario" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted small">Correo electrónico (opcional)</label>
+                <input type="email" class="form-control form-control-lg rounded-3" @bind="email" />
+                <small class="text-muted">Para poder recuperar tu contraseña.</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted small">Contraseña</label>
+                <input type="password" class="form-control form-control-lg rounded-3" @bind="password" required />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted small">Confirmar contraseña</label>
+                <input type="password" class="form-control form-control-lg rounded-3" @bind="confirmarPassword" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3 shadow-sm mb-3" disabled="@cargando">
+                @(cargando ? "Registrando..." : "Crear mi cuenta")
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/login" class="text-muted small">¿Ya tienes cuenta? Inicia sesión</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string codigo = "";
+    private string usuario = "";
+    private string? email;
+    private string password = "";
+    private string confirmarPassword = "";
+    private string errorMessage = "";
+    private bool cargando = false;
+
+    private void OnCodigoInput(ChangeEventArgs e)
+    {
+        codigo = (e.Value?.ToString() ?? "").ToUpperInvariant();
+    }
+
+    private async Task EscanearCodigo()
+    {
+        var resultado = await EscanerQr.EscanearAsync();
+        if (!string.IsNullOrWhiteSpace(resultado))
+        {
+            codigo = resultado.Trim().ToUpperInvariant();
+        }
+    }
+
+    private async Task DoRegistrar()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(codigo) || codigo.Length != 8)
+        {
+            errorMessage = "El código debe tener 8 caracteres.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(usuario))
+        {
+            errorMessage = "Ingresa un usuario.";
+            return;
+        }
+        if (password.Length < 8)
+        {
+            errorMessage = "La contraseña debe tener al menos 8 caracteres.";
+            return;
+        }
+        if (password != confirmarPassword)
+        {
+            errorMessage = "Las contraseñas no coinciden.";
+            return;
+        }
+
+        cargando = true;
+        var (resultado, error) = await Api.RegistrarInquilinoAsync(new RegistrarInquilinoDto(codigo, usuario, password, string.IsNullOrWhiteSpace(email) ? null : email));
+        cargando = false;
+
+        if (resultado != null)
+        {
+            await Auth.IniciarSesionConResultadoAsync(resultado);
+            Nav.NavigateTo("/mi");
+        }
+        else
+        {
+            errorMessage = error ?? "No se pudo completar el registro.";
+        }
+    }
+}

@@ -1,0 +1,145 @@
+@page "/mi/pagos"
+@inject ApiClient Api
+@inject IDispositivoServicio Dispositivo
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Mis Pagos</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-3" style="min-height: 80vh; position: relative;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando...</em></p>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger m-1">@errorMessage</div>
+    }
+    else if (!pagos.Any())
+    {
+        <div class="text-center text-muted mt-4">
+            <i class="bi bi-cash-stack fs-1 d-block mb-3"></i>
+            <p>Aún no tienes pagos registrados.</p>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(descargaMensaje))
+        {
+            <div class="alert alert-danger m-1 p-2 small">@descargaMensaje</div>
+        }
+
+        @foreach (var p in pagos.OrderByDescending(p => p.FechaPago))
+        {
+            var saldo = Math.Max(0, p.TotalMonto - p.ACuenta);
+            <div class="card shadow-sm border-0 mb-3 rounded-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold mb-0">@p.Periodo</h6>
+                        @if (p.Completado)
+                        {
+                            <span class="badge bg-success">Completado</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        }
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar @(p.Completado ? "bg-success" : "bg-warning")" role="progressbar"
+                             style="width: @(p.TotalMonto > 0 ? Math.Min(100, (double)(p.ACuenta / p.TotalMonto) * 100) : 0)%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">Fecha de pago</span>
+                        <span>@p.FechaPago.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">Total</span>
+                        <span class="fw-bold">@MoneyFormatter.Mostrar(p.TotalMonto)</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-success">
+                        <span>A cuenta</span>
+                        <span>@MoneyFormatter.Mostrar(p.ACuenta)</span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-danger fw-bold">
+                        <span>Saldo</span>
+                        <span>@MoneyFormatter.Mostrar(saldo)</span>
+                    </div>
+                    @if (p.Servicios > 0)
+                    {
+                        <div class="d-flex justify-content-between small text-info">
+                            <span>Servicios</span>
+                            <span>@MoneyFormatter.Mostrar(p.Servicios)</span>
+                        </div>
+                    }
+
+                    <button class="btn btn-sm btn-outline-primary w-100 mt-2" disabled="@(descargandoId == p.PagoId)" @onclick="() => DescargarRecibo(p.PagoId)">
+                        <i class="bi bi-receipt"></i> @(descargandoId == p.PagoId ? "Descargando..." : "Recibo")
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<MiPagoDto> pagos = new();
+    private bool cargando = true;
+    private string errorMessage = "";
+    private string descargaMensaje = "";
+    private int? descargandoId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            pagos = await Api.GetMisPagosAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task DescargarRecibo(int pagoId)
+    {
+        descargaMensaje = "";
+        descargandoId = pagoId;
+        try
+        {
+            var bytes = await Api.GetMiReciboPdfAsync(pagoId, "ticket");
+            if (bytes == null)
+            {
+                descargaMensaje = "No se pudo descargar el recibo.";
+                return;
+            }
+
+            await Dispositivo.GuardarArchivoAsync(bytes, $"recibo-{pagoId}.pdf", "Recibo de pago");
+        }
+        catch (Exception ex)
+        {
+            descargaMensaje = $"Error al descargar el recibo: {ex.Message}";
+        }
+        finally
+        {
+            descargandoId = null;
+        }
+    }
+
+    [CascadingParameter] public MainLayout Layout { get; set; } = null!;
+
+    private void AbrirMenu()
+    {
+        Layout?.ToggleSidebar();
+    }
+}

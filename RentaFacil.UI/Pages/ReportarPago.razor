@@ -1,0 +1,246 @@
+@page "/mi/reportar"
+@using RentaFacil.Shared.Enums
+@inject ApiClient Api
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Reportar Pago</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-3" style="min-height: 80vh; position: relative;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando...</em></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(mensajeExito))
+        {
+            <div class="alert alert-success">@mensajeExito</div>
+        }
+
+        @if (!contratos.Any())
+        {
+            <div class="text-center text-muted mt-4">
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
+                <p>No tienes contratos para reportar un pago.</p>
+            </div>
+        }
+        else
+        {
+            <div class="card border rounded-4 mb-4 shadow-sm">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contrato</label>
+                        <select class="form-select" @bind="contratoId">
+                            @foreach (var c in contratos)
+                            {
+                                <option value="@c.ContratoId">@c.NombreInmueble - @c.NombreUnidad</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Monto pagado (USD)</label>
+                        <input type="number" class="form-control" step="0.01" min="0.01" @bind="monto" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Comentario (opcional)</label>
+                        <textarea class="form-control" rows="3" maxlength="500" @bind="comentario" placeholder="Ej: pago por transferencia, referencia #123"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Foto del comprobante (opcional)</label>
+                        <InputFile class="form-control" accept="image/*" OnChange="OnFotoSeleccionada" />
+                        @if (!string.IsNullOrEmpty(fotoMensaje))
+                        {
+                            <small class="@(fotoError ? "text-danger" : "text-success") d-block mt-1">@fotoMensaje</small>
+                        }
+                    </div>
+
+                    <button class="btn btn-primary w-100 fw-bold py-2 rounded-pill" disabled="@enviando" @onclick="EnviarReporte">
+                        @(enviando ? "Enviando..." : "Reportar pago")
+                    </button>
+                </div>
+            </div>
+        }
+
+        <h6 class="fw-bold text-secondary mb-2">Historial de reportes</h6>
+        @if (!reportes.Any())
+        {
+            <p class="text-muted small">Aún no has reportado ningún pago.</p>
+        }
+        else
+        {
+            @foreach (var r in reportes.OrderByDescending(r => r.FechaReporte))
+            {
+                <div class="card shadow-sm border-0 mb-2 rounded-4">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold">@MoneyFormatter.Mostrar(r.Monto)</span>
+                            <small class="text-muted d-block">@r.FechaReporte.ToString("dd/MM/yyyy HH:mm")</small>
+                            @if (!string.IsNullOrWhiteSpace(r.Comentario))
+                            {
+                                <small class="text-muted d-block">@r.Comentario</small>
+                            }
+                        </div>
+                        <span class="badge @ClaseEstado(r.Estado)">@EtiquetaEstado(r.Estado)</span>
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    private List<MiContratoDto> contratos = new();
+    private List<ReportePagoDto> reportes = new();
+    private bool cargando = true;
+    private string errorMessage = "";
+    private string mensajeExito = "";
+
+    private int contratoId;
+    private decimal monto;
+    private string? comentario;
+    private byte[]? fotoBytes;
+    private string fotoMensaje = "";
+    private bool fotoError = false;
+    private bool enviando = false;
+
+    private const long TamanoMaximoFoto = 1_048_576; // 1 MB
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            contratos = await Api.GetMisContratosAsync();
+            if (contratos.Any())
+            {
+                contratoId = contratos.First().ContratoId;
+            }
+            reportes = await Api.GetMisReportesPagoAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task OnFotoSeleccionada(InputFileChangeEventArgs e)
+    {
+        fotoMensaje = "";
+        fotoError = false;
+        fotoBytes = null;
+
+        var archivo = e.File;
+        if (archivo == null) return;
+
+        try
+        {
+            using var stream = archivo.OpenReadStream(maxAllowedSize: TamanoMaximoFoto);
+            using var memoria = new MemoryStream();
+            await stream.CopyToAsync(memoria);
+            fotoBytes = memoria.ToArray();
+            fotoMensaje = "Foto lista para enviar.";
+        }
+        catch (IOException)
+        {
+            fotoBytes = null;
+            fotoMensaje = "La imagen supera 1 MB. Elige una foto más liviana.";
+            fotoError = true;
+        }
+        catch (Exception ex)
+        {
+            fotoBytes = null;
+            fotoMensaje = $"No se pudo leer la imagen: {ex.Message}";
+            fotoError = true;
+        }
+    }
+
+    private async Task EnviarReporte()
+    {
+        errorMessage = "";
+        mensajeExito = "";
+
+        if (contratoId == 0)
+        {
+            errorMessage = "Selecciona un contrato.";
+            return;
+        }
+        if (monto <= 0)
+        {
+            errorMessage = "Ingresa un monto mayor a cero.";
+            return;
+        }
+
+        enviando = true;
+        try
+        {
+            var dto = new CrearReportePagoDto(contratoId, monto, string.IsNullOrWhiteSpace(comentario) ? null : comentario, fotoBytes);
+            var creado = await Api.CrearReportePagoAsync(dto);
+            if (creado != null)
+            {
+                mensajeExito = "Reporte enviado. Tu arrendador lo confirmará pronto.";
+                monto = 0;
+                comentario = null;
+                fotoBytes = null;
+                fotoMensaje = "";
+                reportes = await Api.GetMisReportesPagoAsync();
+            }
+            else
+            {
+                errorMessage = "No se pudo enviar el reporte. Verifica los datos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al enviar el reporte: {ex.Message}";
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private static string EtiquetaEstado(EstadoReportePago e) => e switch
+    {
+        EstadoReportePago.Pendiente => "Pendiente",
+        EstadoReportePago.Confirmado => "Confirmado",
+        EstadoReportePago.Rechazado => "Rechazado",
+        _ => e.ToString()
+    };
+
+    private static string ClaseEstado(EstadoReportePago e) => e switch
+    {
+        EstadoReportePago.Pendiente => "bg-warning text-dark",
+        EstadoReportePago.Confirmado => "bg-success",
+        EstadoReportePago.Rechazado => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    [CascadingParameter] public MainLayout Layout { get; set; } = null!;
+
+    private void AbrirMenu()
+    {
+        Layout?.ToggleSidebar();
+    }
+}

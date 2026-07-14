@@ -1,0 +1,185 @@
+@page "/mi"
+@using RentaFacil.Shared.Enums
+@inject ApiClient Api
+
+<div class="d-flex align-items-center justify-content-between text-white" style="margin: 0 -1rem 1rem -1rem; background-color: #2a7587; padding-top: calc(env(safe-area-inset-top, 0px) + 2rem); padding-bottom: 1rem; padding-left: 1rem; padding-right: 1rem;">
+    <button class="btn btn-link text-white text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle border border-white border-2"
+            style="width: 2.5rem; height: 2.5rem; background-color: rgba(255, 255, 255, 0.15);"
+            @onclick="AbrirMenu" aria-label="Abrir menú">
+        <i class="bi bi-list" style="font-size: 1.6rem; line-height: 1;"></i>
+    </button>
+    <h3 class="mb-0 fw-bold text-center flex-grow-1" style="font-size: 1.5rem;">Mis Contratos</h3>
+    <div style="width: 2.5rem; height: 2.5rem;"></div>
+</div>
+
+<div class="bg-white rounded-top-4 p-3" style="min-height: 80vh; position: relative;">
+    @if (cargando)
+    {
+        <p class="text-center mt-4"><em>Cargando...</em></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger m-1">@errorMessage</div>
+        }
+
+        @if (notificacionesSinLeer > 0)
+        {
+            <a href="/mi/notificaciones" class="alert alert-warning d-flex align-items-center justify-content-between text-decoration-none text-dark">
+                <span><i class="bi bi-bell-fill me-2"></i>Tienes @notificacionesSinLeer notificación(es) sin leer</span>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        }
+
+        @if (!contratos.Any())
+        {
+            <div class="text-center text-muted mt-4">
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
+                <p>Aún no tienes contratos vinculados.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var c in contratos)
+            {
+                <div class="card shadow-sm border-0 mb-3 rounded-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">@c.NombreInmueble - @c.NombreUnidad</h6>
+                            @if (c.Activo)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </div>
+                        <small class="text-muted d-block mb-2"><i class="bi bi-person-fill me-1"></i>Arrendador: @c.NombreArrendador</small>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">Renta mensual</span>
+                            <span class="fw-bold text-primary">@MoneyFormatter.Mostrar(c.Monto)</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">Frecuencia</span>
+                            <span>@EtiquetaFrecuencia(c.Frecuencia)</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">Día de pago</span>
+                            <span>@c.DiaPago</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <div class="card border rounded-4 mt-4 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold text-secondary mb-2">¿Tienes un código nuevo?</h6>
+                <p class="small text-muted">Si tu arrendador te dio un nuevo código (otro contrato u otra propiedad), agrégalo aquí.</p>
+
+                @if (!string.IsNullOrEmpty(vincularMensaje))
+                {
+                    <div class="alert @(vincularExito ? "alert-success" : "alert-danger") p-2 small">@vincularMensaje</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control text-uppercase" maxlength="8" value="@nuevoCodigo"
+                           @oninput="e => nuevoCodigo = (e.Value?.ToString() ?? string.Empty).ToUpperInvariant()" placeholder="Código de 8 caracteres" />
+                    <button class="btn btn-primary" disabled="@vinculando" @onclick="VincularCodigo">
+                        @(vinculando ? "..." : "Vincular")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<MiContratoDto> contratos = new();
+    private bool cargando = true;
+    private string errorMessage = "";
+    private int notificacionesSinLeer = 0;
+
+    private string nuevoCodigo = "";
+    private bool vinculando = false;
+    private string vincularMensaje = "";
+    private bool vincularExito = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            contratos = await Api.GetMisContratosAsync();
+            var notificaciones = await Api.GetMisNotificacionesAsync();
+            notificacionesSinLeer = notificaciones.Count(n => !n.Notificado);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private static string EtiquetaFrecuencia(FrecuenciaPago f) => f switch
+    {
+        FrecuenciaPago.Mensual => "Mensual",
+        FrecuenciaPago.Quincenal => "Quincenal",
+        FrecuenciaPago.Semanal => "Semanal",
+        _ => f.ToString()
+    };
+
+    private async Task VincularCodigo()
+    {
+        vincularMensaje = "";
+        if (string.IsNullOrWhiteSpace(nuevoCodigo) || nuevoCodigo.Length != 8)
+        {
+            vincularMensaje = "El código debe tener 8 caracteres.";
+            vincularExito = false;
+            return;
+        }
+
+        vinculando = true;
+        try
+        {
+            var exito = await Api.VincularCodigoAsync(nuevoCodigo);
+            if (exito)
+            {
+                vincularMensaje = "Contrato vinculado correctamente.";
+                vincularExito = true;
+                nuevoCodigo = "";
+                contratos = await Api.GetMisContratosAsync();
+            }
+            else
+            {
+                vincularMensaje = "No se pudo vincular ese código. Verifica que sea correcto y no haya expirado.";
+                vincularExito = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            vincularMensaje = $"Error al vincular: {ex.Message}";
+            vincularExito = false;
+        }
+        finally
+        {
+            vinculando = false;
+        }
+    }
+
+    [CascadingParameter] public MainLayout Layout { get; set; } = null!;
+
+    private void AbrirMenu()
+    {
+        Layout?.ToggleSidebar();
+    }
+}
