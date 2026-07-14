@@ -1,7 +1,7 @@
 # Arquitectura
 
 ## En una frase
-RentaFácil es una app personal (no multiusuario todavía) para que un arrendador registre inquilinos, inmuebles/unidades, contratos de alquiler y pagos, y emita recibos en PDF — clientes MAUI Blazor Hybrid (móvil/escritorio) **y** web Blazor WebAssembly (navegador) que comparten una sola UI, + backend ASP.NET Core Web API.
+RentaFácil es una app con dos perfiles de cuenta — el **arrendador** (roles `Administrador`/`Propietario`: registra inquilinos, inmuebles/unidades, contratos y pagos, emite recibos PDF) y el **inquilino** (rol `Inquilino`: portal `/mi` de solo-su-data, se registra con el código QR que genera su arrendador y puede reportar pagos) — clientes MAUI Blazor Hybrid (móvil/escritorio) **y** web Blazor WebAssembly (navegador) que comparten una sola UI, + backend ASP.NET Core Web API.
 
 ## Stack
 - Lenguaje / runtime: C# / .NET 10 (`net10.0` en los 6 proyectos)
@@ -12,13 +12,14 @@ RentaFácil es una app personal (no multiusuario todavía) para que un arrendado
 - PDF: QuestPDF (licencia Community) para recibos formato Ticket (80mm) y Carta (A4)
 - Globalización: API y MAUI fuerzan `InvariantCulture`/`es-EC` al arrancar; `MoneyFormatter` (en `RentaFacil.Shared/Globalization/`) centraliza el formato de dinero (es-EC, `$X.XXX,XX`); infraestructura `.resx` lista para multiidioma (solo español poblado hoy) — ver `decisiones.md`.
 - Tests: xUnit + Moq + FluentAssertions (`RentaFacil.Tests`)
-- Tiempo real: SignalR (hub `/hubs/datos` en la API, `[Authorize]`, JWT por query string solo en paths `/hubs/*`; `IDataChangeNotifier` best-effort emite `"CambioDatos"(entidad, usuarioId, accion)` al mutar Pago/Contrato; `SignalRClient` compartido en `RentaFacil.UI/Services`, suscrito hoy solo en `Pagos.razor`) — implementado 2026-07-07.
+- Tiempo real: SignalR (hub `/hubs/datos` en la API, `[Authorize]`, JWT por query string solo en paths `/hubs/*`; `IDataChangeNotifier` best-effort emite `"CambioDatos"(entidad, usuarioId, accion)` al mutar Pago/Contrato/ReportePago; desde 2026-07-14 los eventos van a **grupos por usuario** `usuario-{id}` — no a `Clients.All` — para aislar arrendadores e inquilinos; `SignalRClient` compartido en `RentaFacil.UI/Services`, suscrito en `Pagos.razor` y `ReportesPago.razor`).
+- QR: la API genera el PNG del código de vinculación con **QRCoder** (servido autenticado); el cliente MAUI escanea con **ZXing.Net.Maui** (permiso CAMERA, abstracción `IEscanerQr` en `RentaFacil.UI/Abstractions/` con impl no-soportada en Web → allí se escribe el código a mano).
 - Servicios externos: login con Google OAuth 2.0 tiene los **cimientos** implementados (2026-07-07: validación de ID token con `Google.Apis.Auth` en la API, endpoint `POST api/auth/login-google`, abstracción `IProveedorGoogle` con botón oculto en la UI) pero está **inactivo hasta configurar credenciales** (user-secrets `Google:ClientId`, opcional `Google:PermitirRegistro`) e implementar `IProveedorGoogle` real por plataforma; WhatsApp deep link sigue sin implementar — ver la sección "Pendiente" de `CLAUDE.md`.
 
 ## Mapa de carpetas
 - `RentaFacil.Shared/` → DTOs (`Models/*Dto.cs`, records), enums (`Enums/TipoInmueble.cs`, `Enums/FrecuenciaPago.cs`) y `Globalization/MoneyFormatter`, compartidos por API y clientes. Sin lógica de negocio.
 - `RentaFacil.UI/` → **Razor Class Library con la UI compartida entre MAUI y Web.** `Pages/*.razor` (todas las pantallas), `Layout/*` (MainLayout/NavMenu/LoginLayout), `Services/` (`ApiClient`, `AuthService`, `AuthHeaderHandler`), `ViewModels/EstadoInquilinoViewModel.cs`, `Abstractions/` (`ITokenStore`, `IDispositivoServicio` — las implementa cada host), y `_Marker.cs` (clase marcador para `Router.AdditionalAssemblies`). No registra DI ni define la URL de la API; eso lo hace cada host.
-- `RentaFacil.API/Models/` → entidades EF Core (`Inquilino`, `Inmueble`, `Unidad`, `Contrato`, `Pago`, `Recordatorio`, `Medidor`, `MedidorInquilino`, `FacturaMedidor`, `DetalleServicioPago`, `NotificacionPendiente`)
+- `RentaFacil.API/Models/` → entidades EF Core (`Inquilino`, `Inmueble`, `Unidad`, `Contrato`, `Pago`, `Recordatorio`, `Medidor`, `MedidorInquilino`, `FacturaMedidor`, `DetalleServicioPago`, `NotificacionPendiente`, `CodigoVinculacion`, `ReportePago`)
 - `RentaFacil.API/Data/` → solo `AppDbContext.cs`
 - `RentaFacil.API/Migrations/` → migraciones EF Core (en la raíz del proyecto, NO dentro de `Data/` — ojo: los docs de plan dibujan `Data/Migrations/`, pero el código real las tiene aquí)
 - `RentaFacil.API/Repositories/` → acceso a datos, un repo + interfaz por entidad (`IInquilinoRepository`, etc.); `OtherRepositories.cs`/`IOtherRepositories.cs` agrupan Contrato/Pago
@@ -50,6 +51,8 @@ Medidores  ||--o{ MedidoresInquilino  : vincula     (FK MedidorId,   borrado CAS
 Medidores  ||--o{ FacturasMedidor     : planillas   (FK MedidorId,   borrado CASCADE)
 ```
 
+Módulo inquilino (2026-07-14): `Inquilino.UsuarioCuentaId int?` referencia la cuenta `auth.Usuarios` del inquilino (null = aún sin registrarse; índice no único — una cuenta puede vincular varios `Inquilino` de distintos arrendadores). `CodigosVinculacion` (código único de 8 chars por contrato, expira 7 días, un solo uso con reclamo atómico) y `ReportesPago` (reporte del inquilino con estado Pendiente/Confirmado/Rechazado y `FotoComprobante varbinary` ≤1MB) viven en `renta` y referencian Contrato/Inquilino **sin FK estricta** (mismo criterio que `Recordatorio.ContratoId`).
+
 Reglas de borrado (definidas en `OnModelCreating`):
 - Borrar un **Inmueble** elimina en cascada sus **Unidades** y sus **Medidores**.
 - Borrar un **Contrato** elimina en cascada sus **Pagos**. `MedidorInquilino.ContratoId` es informativo (sin FK estricta), igual que `Recordatorio.ContratoId`.
@@ -64,6 +67,6 @@ Reglas de borrado (definidas en `OnModelCreating`):
 - No hay Docker en uso real (está en el plan para Fase 2, pero no hay `Dockerfile`/`docker-compose.yml` en el repo).
 - No hay paginación en los `GetAll()` de la API.
 - No hay CI/CD configurado (no hay workflows en `.github/workflows/`).
-- No hay multiusuario real más allá de roles básicos (`Administrador`/`Propietario`) — el registro de cuentas vía `/api/auth/registrar` exige ya estar autenticado, no es self-service público.
+- No hay multiusuario de *arrendadores*: el registro de cuentas arrendador vía `/api/auth/registrar` exige ser Administrador. (El rol `Inquilino` SÍ tiene registro self-service, pero solo con un código de vinculación vigente — `/api/auth/registrar-inquilino`, 2026-07-14.)
 
-(Autenticación JWT, filtrado por `UsuarioId`, y auditoría de cambios — que antes estaban en esta lista — ya están implementados; ver el resto de este documento y `decisiones.md`.)
+(Autenticación JWT, filtrado por `UsuarioId`, auditoría de cambios, y el módulo/portal del inquilino — que antes estaban en esta lista o en "Pendiente" — ya están implementados; ver el resto de este documento y `decisiones.md`.)
